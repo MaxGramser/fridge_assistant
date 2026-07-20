@@ -1,0 +1,1846 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "krop-sla",
+      "name": "Krop sla",
+      "aliases": [
+        "sla",
+        "ijsbergsla",
+        "kropsla"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥬",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": null,
+        "buiten": 1
+      },
+      "notes": "Bewaar in groentela; niet geschikt om in te vriezen."
+    },
+    {
+      "id": "spinazie",
+      "name": "Spinazie",
+      "aliases": [
+        "verse spinazie",
+        "babyspinazie"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥬",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 240,
+        "buiten": null
+      },
+      "notes": "Kort houdbaar; blancheren voor het invriezen."
+    },
+    {
+      "id": "wortel",
+      "name": "Wortel",
+      "aliases": [
+        "wortels",
+        "peen",
+        "winterpeen",
+        "bospeen"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥕",
+      "icon": "mdi:carrot",
+      "shelf_life": {
+        "koelkast": 21,
+        "vriezer": 300,
+        "buiten": 5
+      },
+      "notes": "In koelkast blijven wortels weken goed."
+    },
+    {
+      "id": "broccoli",
+      "name": "Broccoli",
+      "aliases": [
+        "broccoliroosjes"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥦",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Blancheren voor het invriezen."
+    },
+    {
+      "id": "komkommer",
+      "name": "Komkommer",
+      "aliases": [
+        "komkommers"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥒",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": null,
+        "buiten": 2
+      },
+      "opened_koelkast": 3,
+      "notes": "Wordt waterig bij invriezen; niet aanbevolen."
+    },
+    {
+      "id": "paprika",
+      "name": "Paprika",
+      "aliases": [
+        "rode paprika",
+        "gele paprika",
+        "groene paprika"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🫑",
+      "icon": "mdi:chili-mild",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 240,
+        "buiten": 3
+      },
+      "notes": "In reepjes goed in te vriezen voor roerbak."
+    },
+    {
+      "id": "ui",
+      "name": "Ui",
+      "aliases": [
+        "uien",
+        "gele ui"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🧅",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 30,
+        "vriezer": 180,
+        "buiten": 30
+      },
+      "opened_koelkast": 5,
+      "notes": "Hele uien bewaar je droog en donker buiten de koelkast."
+    },
+    {
+      "id": "aardappel",
+      "name": "Aardappel",
+      "aliases": [
+        "aardappelen",
+        "piepers",
+        "krieltjes"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥔",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": null,
+        "buiten": 21
+      },
+      "notes": "Donker en koel bewaren, niet in de koelkast."
+    },
+    {
+      "id": "tomaat",
+      "name": "Tomaat",
+      "aliases": [
+        "tomaten",
+        "trostomaat",
+        "cherrytomaatjes"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🍅",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 180,
+        "buiten": 4
+      },
+      "notes": "Op kamertemperatuur smaakvoller; koud alleen langer houdbaar."
+    },
+    {
+      "id": "bloemkool",
+      "name": "Bloemkool",
+      "aliases": [
+        "bloemkoolroosjes"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥦",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 6,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Blancheren voor het invriezen."
+    },
+    {
+      "id": "courgette",
+      "name": "Courgette",
+      "aliases": [
+        "courgettes"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥒",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 240,
+        "buiten": 3
+      },
+      "notes": "Geraspt goed in te vriezen."
+    },
+    {
+      "id": "champignons",
+      "name": "Champignons",
+      "aliases": [
+        "paddenstoelen",
+        "kastanjechampignons"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🍄",
+      "icon": "mdi:mushroom",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 240,
+        "buiten": null
+      },
+      "notes": "In papieren zak bewaren, niet afgesloten in plastic."
+    },
+    {
+      "id": "sperziebonen",
+      "name": "Sperziebonen",
+      "aliases": [
+        "prinsessenbonen",
+        "haricots verts"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🫛",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Blancheren voor het invriezen."
+    },
+    {
+      "id": "prei",
+      "name": "Prei",
+      "aliases": [
+        "preien"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥬",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 240,
+        "buiten": null
+      },
+      "notes": "In ringen gesneden goed in te vriezen."
+    },
+    {
+      "id": "andijvie",
+      "name": "Andijvie",
+      "aliases": [
+        "verse andijvie"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥬",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 180,
+        "buiten": null
+      },
+      "notes": "Blancheren voor het invriezen."
+    },
+    {
+      "id": "boerenkool",
+      "name": "Boerenkool",
+      "aliases": [
+        "gesneden boerenkool"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🥬",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Prima om rauw in te vriezen."
+    },
+    {
+      "id": "banaan",
+      "name": "Banaan",
+      "aliases": [
+        "bananen"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍌",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": 5
+      },
+      "notes": "Koelkast maakt de schil bruin; gepeld in te vriezen voor smoothies."
+    },
+    {
+      "id": "appel",
+      "name": "Appel",
+      "aliases": [
+        "appels",
+        "elstar",
+        "jonagold"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍎",
+      "icon": "mdi:food-apple",
+      "shelf_life": {
+        "koelkast": 30,
+        "vriezer": 240,
+        "buiten": 10
+      },
+      "notes": "In koelkast blijven appels het langst knapperig."
+    },
+    {
+      "id": "aardbeien",
+      "name": "Aardbeien",
+      "aliases": [
+        "verse aardbeien"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍓",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 300,
+        "buiten": 1
+      },
+      "notes": "Pas vlak voor gebruik wassen."
+    },
+    {
+      "id": "druiven",
+      "name": "Druiven",
+      "aliases": [
+        "blauwe druiven",
+        "witte druiven",
+        "pitloze druiven"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍇",
+      "icon": "mdi:fruit-grapes",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 180,
+        "buiten": 3
+      },
+      "notes": "Bevroren druiven zijn een lekker koud snackje."
+    },
+    {
+      "id": "citroen",
+      "name": "Citroen",
+      "aliases": [
+        "citroenen"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍋",
+      "icon": "mdi:fruit-citrus",
+      "shelf_life": {
+        "koelkast": 21,
+        "vriezer": 120,
+        "buiten": 7
+      },
+      "notes": "Rasp en sap los in te vriezen in ijsblokjes."
+    },
+    {
+      "id": "sinaasappel",
+      "name": "Sinaasappel",
+      "aliases": [
+        "sinaasappels",
+        "handsinaasappel"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍊",
+      "icon": "mdi:fruit-citrus",
+      "shelf_life": {
+        "koelkast": 21,
+        "vriezer": null,
+        "buiten": 10
+      },
+      "notes": "Bewaar koel voor de langste houdbaarheid."
+    },
+    {
+      "id": "peer",
+      "name": "Peer",
+      "aliases": [
+        "peren",
+        "conference"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍐",
+      "icon": "mdi:fruit-pear",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": 180,
+        "buiten": 5
+      },
+      "notes": "Rijp op kamertemperatuur, bewaar daarna koud."
+    },
+    {
+      "id": "blauwe-bessen",
+      "name": "Blauwe bessen",
+      "aliases": [
+        "bosbessen",
+        "blueberries"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🫐",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 300,
+        "buiten": 2
+      },
+      "notes": "Uitstekend om in te vriezen."
+    },
+    {
+      "id": "mango",
+      "name": "Mango",
+      "aliases": [
+        "mango's"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🥭",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 6,
+        "vriezer": 240,
+        "buiten": 4
+      },
+      "notes": "Rijp op kamertemperatuur; in blokjes in te vriezen."
+    },
+    {
+      "id": "avocado",
+      "name": "Avocado",
+      "aliases": [
+        "avocado's"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🥑",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 120,
+        "buiten": 4
+      },
+      "opened_koelkast": 1,
+      "notes": "Aangesneden snel bruin; besprenkel met citroensap."
+    },
+    {
+      "id": "kiwi",
+      "name": "Kiwi",
+      "aliases": [
+        "kiwi's"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🥝",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": 180,
+        "buiten": 5
+      },
+      "notes": "Rijpt sneller naast een appel of banaan."
+    },
+    {
+      "id": "melk",
+      "name": "Melk",
+      "aliases": [
+        "halfvolle melk",
+        "volle melk",
+        "verse melk"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": "Geopend binnen enkele dagen opmaken."
+    },
+    {
+      "id": "yoghurt",
+      "name": "Yoghurt",
+      "aliases": [
+        "naturel yoghurt",
+        "griekse yoghurt"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Kan na invriezen schiften; roer goed door."
+    },
+    {
+      "id": "jonge-kaas",
+      "name": "Jonge kaas",
+      "aliases": [
+        "kaas jong",
+        "goudse jong",
+        "plakjes kaas"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🧀",
+      "icon": "mdi:cheese",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "notes": "Verpak luchtdicht om uitdrogen te voorkomen."
+    },
+    {
+      "id": "oude-kaas",
+      "name": "Oude kaas",
+      "aliases": [
+        "kaas oud",
+        "belegen kaas",
+        "harde kaas"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🧀",
+      "icon": "mdi:cheese",
+      "shelf_life": {
+        "koelkast": 21,
+        "vriezer": 180,
+        "buiten": null
+      },
+      "notes": "Harde kaas is lang houdbaar in de koelkast."
+    },
+    {
+      "id": "roomkaas",
+      "name": "Roomkaas",
+      "aliases": [
+        "monchou",
+        "smeerkaas",
+        "philadelphia"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🧀",
+      "icon": "mdi:cheese",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 7,
+      "notes": "Textuur wordt korrelig na invriezen."
+    },
+    {
+      "id": "boter",
+      "name": "Boter",
+      "aliases": [
+        "roomboter",
+        "ongezouten boter"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🧈",
+      "icon": "mdi:cheese",
+      "shelf_life": {
+        "koelkast": 30,
+        "vriezer": 270,
+        "buiten": 3
+      },
+      "notes": "Uitstekend in te vriezen."
+    },
+    {
+      "id": "slagroom",
+      "name": "Slagroom",
+      "aliases": [
+        "room",
+        "verse slagroom"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 3,
+      "notes": "Opgeklopt in toefjes in te vriezen."
+    },
+    {
+      "id": "kwark",
+      "name": "Kwark",
+      "aliases": [
+        "magere kwark",
+        "volle kwark"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": "Kan schiften na invriezen."
+    },
+    {
+      "id": "karnemelk",
+      "name": "Karnemelk",
+      "aliases": [
+        "verse karnemelk"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": ""
+    },
+    {
+      "id": "creme-fraiche",
+      "name": "Crème fraîche",
+      "aliases": [
+        "creme fraiche",
+        "zure room"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Schift makkelijk; niet aanbevolen om in te vriezen."
+    },
+    {
+      "id": "geraspte-kaas",
+      "name": "Geraspte kaas",
+      "aliases": [
+        "gemalen kaas",
+        "pizzakaas",
+        "geraspte gouda"
+      ],
+      "category": "zuivel",
+      "kind": "ingredient",
+      "emoji": "🧀",
+      "icon": "mdi:cheese",
+      "shelf_life": {
+        "koelkast": 10,
+        "vriezer": 180,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Prima rechtstreeks uit de vriezer te gebruiken."
+    },
+    {
+      "id": "kipfilet-rauw",
+      "name": "Kipfilet rauw",
+      "aliases": [
+        "rauwe kip",
+        "kipfilet",
+        "kippenborst"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🍗",
+      "icon": "mdi:food-drumstick",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": 270,
+        "buiten": null
+      },
+      "notes": "Rauwe kip snel verwerken of invriezen."
+    },
+    {
+      "id": "gehakt-rauw",
+      "name": "Gehakt rauw",
+      "aliases": [
+        "rauw gehakt",
+        "rundergehakt",
+        "half-om-half gehakt"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🥩",
+      "icon": "mdi:food-steak",
+      "shelf_life": {
+        "koelkast": 1,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Rauw gehakt bederft snel; dezelfde dag gebruiken of invriezen."
+    },
+    {
+      "id": "spek",
+      "name": "Spek",
+      "aliases": [
+        "ontbijtspek",
+        "spekjes",
+        "bacon"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🥓",
+      "icon": "mdi:food-steak",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 180,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": ""
+    },
+    {
+      "id": "kip-gebraden",
+      "name": "Kip gebraden",
+      "aliases": [
+        "gebraden kip",
+        "grillkip",
+        "kip gaar"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🍗",
+      "icon": "mdi:food-drumstick",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "notes": "Binnen 2 uur na bereiding koelen."
+    },
+    {
+      "id": "rookworst",
+      "name": "Rookworst",
+      "aliases": [
+        "gelderse rookworst",
+        "worst"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🌭",
+      "icon": "mdi:sausage",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": ""
+    },
+    {
+      "id": "ham-vleeswaren",
+      "name": "Ham",
+      "aliases": [
+        "achterham",
+        "vleeswaren",
+        "beenham"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🍖",
+      "icon": "mdi:food-steak",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 3,
+      "notes": "Geopende vleeswaren snel opmaken."
+    },
+    {
+      "id": "salami",
+      "name": "Salami",
+      "aliases": [
+        "cervelaat",
+        "worstwaren"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🍖",
+      "icon": "mdi:sausage",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "opened_koelkast": 7,
+      "notes": ""
+    },
+    {
+      "id": "biefstuk-rauw",
+      "name": "Biefstuk rauw",
+      "aliases": [
+        "rauwe biefstuk",
+        "runderlappen",
+        "steak"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🥩",
+      "icon": "mdi:food-steak",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 240,
+        "buiten": null
+      },
+      "notes": "Hele stukken rood vlees blijven langer goed dan gehakt."
+    },
+    {
+      "id": "hamburger-rauw",
+      "name": "Hamburger rauw",
+      "aliases": [
+        "rauwe hamburger",
+        "burgers"
+      ],
+      "category": "vlees",
+      "kind": "ingredient",
+      "emoji": "🍔",
+      "icon": "mdi:hamburger",
+      "shelf_life": {
+        "koelkast": 1,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Als gehakt: snel gebruiken of invriezen."
+    },
+    {
+      "id": "zalm-rauw",
+      "name": "Zalm rauw",
+      "aliases": [
+        "rauwe zalm",
+        "zalmfilet",
+        "verse zalm"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🐟",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 1,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Verse vis dezelfde dag bereiden of invriezen."
+    },
+    {
+      "id": "garnalen",
+      "name": "Garnalen",
+      "aliases": [
+        "gepelde garnalen",
+        "hollandse garnalen",
+        "grote garnalen"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🍤",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Snel verwerken; koel houden."
+    },
+    {
+      "id": "witvis-kabeljauw",
+      "name": "Witvis",
+      "aliases": [
+        "kabeljauw",
+        "witvisfilet",
+        "pangasius",
+        "tilapia"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🐟",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 1,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "notes": "Verse witvis dezelfde dag gebruiken."
+    },
+    {
+      "id": "gerookte-zalm",
+      "name": "Gerookte zalm",
+      "aliases": [
+        "rookzalm",
+        "zalm gerookt"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🐟",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "opened_koelkast": 2,
+      "notes": "Geopend binnen twee dagen opmaken."
+    },
+    {
+      "id": "tonijn-blik-open",
+      "name": "Tonijn uit blik (open)",
+      "aliases": [
+        "tonijn open",
+        "tonijn blik"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🐟",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": null,
+        "buiten": null
+      },
+      "notes": "Overhevelen naar afgesloten bakje na openen."
+    },
+    {
+      "id": "haring",
+      "name": "Haring",
+      "aliases": [
+        "hollandse nieuwe",
+        "maatjesharing"
+      ],
+      "category": "vis",
+      "kind": "ingredient",
+      "emoji": "🐟",
+      "icon": "mdi:fish",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Koel bewaren en snel eten."
+    },
+    {
+      "id": "macaroni-met-vlees",
+      "name": "Macaroni met vlees",
+      "aliases": [
+        "pasta bolognese",
+        "spaghetti bolognese",
+        "macaroni"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍝",
+      "icon": "mdi:pasta",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Laat eerst afkoelen voor je invriest."
+    },
+    {
+      "id": "nasi",
+      "name": "Nasi",
+      "aliases": [
+        "nasi goreng",
+        "gebakken rijst"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍚",
+      "icon": "mdi:rice",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": 30,
+        "buiten": null
+      },
+      "notes": "Gekookte rijst snel koelen i.v.m. voedselveiligheid."
+    },
+    {
+      "id": "verse-soep",
+      "name": "Verse soep",
+      "aliases": [
+        "soep",
+        "zelfgemaakte soep"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍲",
+      "icon": "mdi:pot-steam",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Laat afkoelen en vries in porties in."
+    },
+    {
+      "id": "stamppot",
+      "name": "Stamppot",
+      "aliases": [
+        "boerenkoolstamppot",
+        "hutspot",
+        "andijviestamppot"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🥔",
+      "icon": "mdi:pot-steam",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Laat afkoelen voor het invriezen."
+    },
+    {
+      "id": "rijst-gekookt",
+      "name": "Rijst gekookt",
+      "aliases": [
+        "gekookte rijst",
+        "witte rijst",
+        "zilvervliesrijst gekookt"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍚",
+      "icon": "mdi:rice",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 30,
+        "buiten": null
+      },
+      "notes": "Snel koelen en niet opnieuw opwarmen na 1 keer."
+    },
+    {
+      "id": "pasta-gekookt",
+      "name": "Pasta gekookt",
+      "aliases": [
+        "gekookte pasta",
+        "spaghetti gekookt",
+        "penne gekookt"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍝",
+      "icon": "mdi:pasta",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Besprenkel met olie zodat het niet plakt."
+    },
+    {
+      "id": "curry",
+      "name": "Curry",
+      "aliases": [
+        "kip curry",
+        "groene curry",
+        "rode curry"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍛",
+      "icon": "mdi:pot-steam",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Laat afkoelen voor het invriezen."
+    },
+    {
+      "id": "lasagne",
+      "name": "Lasagne",
+      "aliases": [
+        "ovenschotel lasagne"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍝",
+      "icon": "mdi:pasta",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "In porties invriezen scheelt bij het ontdooien."
+    },
+    {
+      "id": "pannenkoeken",
+      "name": "Pannenkoeken",
+      "aliases": [
+        "pannenkoek",
+        "flensjes"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🥞",
+      "icon": "mdi:food",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Leg vellen bakpapier tussen de pannenkoeken in de vriezer."
+    },
+    {
+      "id": "bami",
+      "name": "Bami",
+      "aliases": [
+        "bami goreng",
+        "gebakken mie"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍜",
+      "icon": "mdi:noodles",
+      "shelf_life": {
+        "koelkast": 2,
+        "vriezer": 30,
+        "buiten": null
+      },
+      "notes": "Snel koelen na bereiding."
+    },
+    {
+      "id": "aardappelpuree",
+      "name": "Aardappelpuree",
+      "aliases": [
+        "puree",
+        "gestampte aardappelen"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🥔",
+      "icon": "mdi:pot-steam",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Laat afkoelen voor het invriezen."
+    },
+    {
+      "id": "groentesoep",
+      "name": "Groentesoep",
+      "aliases": [
+        "verse groentesoep",
+        "tomatensoep"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍲",
+      "icon": "mdi:pot-steam",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "notes": "Uitstekend om in porties in te vriezen."
+    },
+    {
+      "id": "brood",
+      "name": "Brood",
+      "aliases": [
+        "heel brood",
+        "volkorenbrood",
+        "wit brood",
+        "bruin brood"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🍞",
+      "icon": "mdi:bread-slice",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": 90,
+        "buiten": 3
+      },
+      "notes": "Koelkast maakt brood snel oud; vries in per portie."
+    },
+    {
+      "id": "croissant",
+      "name": "Croissant",
+      "aliases": [
+        "croissants",
+        "roomboter croissant"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🥐",
+      "icon": "mdi:food-croissant",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": 60,
+        "buiten": 2
+      },
+      "notes": "Even opbakken na ontdooien voor een verse smaak."
+    },
+    {
+      "id": "wraps",
+      "name": "Wraps",
+      "aliases": [
+        "tortilla wraps",
+        "tortilla's"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🌯",
+      "icon": "mdi:bread-slice",
+      "shelf_life": {
+        "koelkast": 14,
+        "vriezer": 90,
+        "buiten": 7
+      },
+      "opened_koelkast": 10,
+      "notes": ""
+    },
+    {
+      "id": "bagels",
+      "name": "Bagels",
+      "aliases": [
+        "bagel"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🥯",
+      "icon": "mdi:bread-slice",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": 90,
+        "buiten": 3
+      },
+      "notes": "Vries in en rooster direct vanuit de vriezer."
+    },
+    {
+      "id": "beschuit",
+      "name": "Beschuit",
+      "aliases": [
+        "beschuitjes"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🍘",
+      "icon": "mdi:food",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": null,
+        "buiten": 60
+      },
+      "opened_koelkast": null,
+      "notes": "Droog en luchtdicht bewaren tegen zacht worden."
+    },
+    {
+      "id": "krentenbollen",
+      "name": "Krentenbollen",
+      "aliases": [
+        "rozijnenbollen",
+        "krentenbol"
+      ],
+      "category": "brood_bakkerij",
+      "kind": "ingredient",
+      "emoji": "🍞",
+      "icon": "mdi:bread-slice",
+      "shelf_life": {
+        "koelkast": null,
+        "vriezer": 90,
+        "buiten": 3
+      },
+      "notes": "Vries los in voor een verse bol per keer."
+    },
+    {
+      "id": "pesto",
+      "name": "Pesto (open)",
+      "aliases": [
+        "groene pesto",
+        "rode pesto",
+        "pesto pot"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🫙",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 7,
+      "notes": "Dek af met laagje olijfolie tegen uitdrogen."
+    },
+    {
+      "id": "mayonaise-open",
+      "name": "Mayonaise (open)",
+      "aliases": [
+        "mayo open",
+        "mayonaise"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🫙",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 60,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 60,
+      "notes": "Na openen in de koelkast bewaren."
+    },
+    {
+      "id": "ketchup-open",
+      "name": "Ketchup (open)",
+      "aliases": [
+        "ketchup",
+        "tomatenketchup"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🍅",
+      "icon": "mdi:bottle-tonic",
+      "shelf_life": {
+        "koelkast": 180,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 180,
+      "notes": "Geopend in de koelkast maanden houdbaar."
+    },
+    {
+      "id": "hummus",
+      "name": "Hummus",
+      "aliases": [
+        "houmous",
+        "kikkererwtendip"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🫙",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": ""
+    },
+    {
+      "id": "tomatensaus-open",
+      "name": "Tomatensaus (open)",
+      "aliases": [
+        "pastasaus open",
+        "tomatensaus pot",
+        "passata open"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🍅",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Rest goed in te vriezen voor een volgende pasta."
+    },
+    {
+      "id": "mosterd-open",
+      "name": "Mosterd (open)",
+      "aliases": [
+        "mosterd",
+        "dijonmosterd"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🫙",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 180,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 180,
+      "notes": "Lang houdbaar in de koelkast."
+    },
+    {
+      "id": "sojasaus-open",
+      "name": "Sojasaus (open)",
+      "aliases": [
+        "soja saus",
+        "ketjap open"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🫗",
+      "icon": "mdi:bottle-tonic",
+      "shelf_life": {
+        "koelkast": 365,
+        "vriezer": null,
+        "buiten": 30
+      },
+      "opened_koelkast": 365,
+      "notes": "Blijft door het zout heel lang goed."
+    },
+    {
+      "id": "appelmoes-open",
+      "name": "Appelmoes (open)",
+      "aliases": [
+        "appelmoes",
+        "appelmoes pot"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🍎",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "opened_koelkast": 7,
+      "notes": ""
+    },
+    {
+      "id": "verse-pesto-koelvers",
+      "name": "Verse pesto (koelvers)",
+      "aliases": [
+        "koelverse pesto",
+        "verse basilicumpesto"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🌿",
+      "icon": "mdi:bowl-mix",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "opened_koelkast": 3,
+      "notes": "Koelvers is korter houdbaar dan pesto uit pot."
+    },
+    {
+      "id": "verse-jus",
+      "name": "Verse jus d'orange",
+      "aliases": [
+        "verse sinaasappelsap",
+        "jus d'orange",
+        "vers geperst sap"
+      ],
+      "category": "dranken",
+      "kind": "ingredient",
+      "emoji": "🧃",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "opened_koelkast": 2,
+      "notes": "Vers sap snel opdrinken; goed in te vriezen."
+    },
+    {
+      "id": "open-witte-wijn",
+      "name": "Open witte wijn",
+      "aliases": [
+        "witte wijn open",
+        "wijn open"
+      ],
+      "category": "dranken",
+      "kind": "ingredient",
+      "emoji": "🍷",
+      "icon": "mdi:glass-wine",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Rest in ijsblokjes invriezen voor in de saus."
+    },
+    {
+      "id": "open-rode-wijn",
+      "name": "Open rode wijn",
+      "aliases": [
+        "rode wijn open"
+      ],
+      "category": "dranken",
+      "kind": "ingredient",
+      "emoji": "🍷",
+      "icon": "mdi:glass-wine",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": null,
+        "buiten": 3
+      },
+      "opened_koelkast": 5,
+      "notes": "Afgesloten koel bewaren voor langere houdbaarheid."
+    },
+    {
+      "id": "plantaardige-melk-open",
+      "name": "Plantaardige melk (open)",
+      "aliases": [
+        "havermelk open",
+        "sojamelk open",
+        "amandelmelk open"
+      ],
+      "category": "dranken",
+      "kind": "ingredient",
+      "emoji": "🥛",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": "Goed schudden; kan na invriezen schiften."
+    },
+    {
+      "id": "vruchtensap-open",
+      "name": "Vruchtensap (open)",
+      "aliases": [
+        "appelsap open",
+        "sap open",
+        "vruchtensap pak"
+      ],
+      "category": "dranken",
+      "kind": "ingredient",
+      "emoji": "🧃",
+      "icon": "mdi:cup",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 120,
+        "buiten": null
+      },
+      "opened_koelkast": 5,
+      "notes": ""
+    },
+    {
+      "id": "eieren",
+      "name": "Eieren",
+      "aliases": [
+        "ei",
+        "scharreleieren",
+        "kippeneieren"
+      ],
+      "category": "eieren",
+      "kind": "ingredient",
+      "emoji": "🥚",
+      "icon": "mdi:egg",
+      "shelf_life": {
+        "koelkast": 28,
+        "vriezer": null,
+        "buiten": 14
+      },
+      "notes": "Losgeklopt wel in te vriezen, in de schaal niet."
+    },
+    {
+      "id": "gekookt-ei",
+      "name": "Gekookt ei",
+      "aliases": [
+        "gekookte eieren",
+        "hardgekookt ei"
+      ],
+      "category": "eieren",
+      "kind": "ingredient",
+      "emoji": "🥚",
+      "icon": "mdi:egg",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": null,
+        "buiten": 1
+      },
+      "notes": "In de schaal langer houdbaar dan gepeld."
+    },
+    {
+      "id": "restjes-algemeen",
+      "name": "Restjes",
+      "aliases": [
+        "kliekjes",
+        "overgebleven eten",
+        "restje"
+      ],
+      "category": "restjes",
+      "kind": "gerecht",
+      "emoji": "🍱",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Binnen 2 uur koelen en goed afsluiten."
+    },
+    {
+      "id": "restjes-ovenschotel",
+      "name": "Restjes ovenschotel",
+      "aliases": [
+        "ovenschotel restje",
+        "gratin restje"
+      ],
+      "category": "restjes",
+      "kind": "gerecht",
+      "emoji": "🍲",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 90,
+        "buiten": null
+      },
+      "notes": "Laat afkoelen voor het invriezen."
+    },
+    {
+      "id": "tofu-open",
+      "name": "Tofu (open)",
+      "aliases": [
+        "tofoe",
+        "tahoe open",
+        "tofu"
+      ],
+      "category": "overig",
+      "kind": "ingredient",
+      "emoji": "🧊",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 150,
+        "buiten": null
+      },
+      "opened_koelkast": 4,
+      "notes": "Bewaar geopend onder water, dagelijks verversen."
+    },
+    {
+      "id": "olijven-open",
+      "name": "Olijven (open)",
+      "aliases": [
+        "groene olijven",
+        "zwarte olijven"
+      ],
+      "category": "overig",
+      "kind": "ingredient",
+      "emoji": "🫒",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 21,
+        "vriezer": null,
+        "buiten": null
+      },
+      "opened_koelkast": 21,
+      "notes": "Bewaar in het eigen vocht."
+    },
+    {
+      "id": "verse-basilicum",
+      "name": "Verse basilicum",
+      "aliases": [
+        "basilicum",
+        "verse kruiden",
+        "peterselie",
+        "koriander"
+      ],
+      "category": "overig",
+      "kind": "ingredient",
+      "emoji": "🌿",
+      "icon": "mdi:leaf",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 90,
+        "buiten": 2
+      },
+      "notes": "Fijngehakt met olie in ijsblokjes in te vriezen."
+    },
+    {
+      "id": "tuinbonen",
+      "name": "Tuinbonen",
+      "aliases": [
+        "verse tuinbonen"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🫛",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Blancheren voor het invriezen."
+    },
+    {
+      "id": "doperwten",
+      "name": "Doperwten",
+      "aliases": [
+        "erwtjes",
+        "verse erwten"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🫛",
+      "icon": "mdi:food-variant",
+      "shelf_life": {
+        "koelkast": 4,
+        "vriezer": 300,
+        "buiten": null
+      },
+      "notes": "Uitstekend om in te vriezen."
+    },
+    {
+      "id": "mais",
+      "name": "Maïs",
+      "aliases": [
+        "mais",
+        "maiskolf",
+        "suikermais"
+      ],
+      "category": "groente",
+      "kind": "ingredient",
+      "emoji": "🌽",
+      "icon": "mdi:corn",
+      "shelf_life": {
+        "koelkast": 5,
+        "vriezer": 240,
+        "buiten": 2
+      },
+      "notes": "Vers is het zoetst; snel gebruiken of invriezen."
+    },
+    {
+      "id": "frambozen",
+      "name": "Frambozen",
+      "aliases": [
+        "verse frambozen"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍓",
+      "icon": "mdi:fruit-cherries",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 300,
+        "buiten": 1
+      },
+      "notes": "Kwetsbaar fruit; goed in te vriezen."
+    },
+    {
+      "id": "meloen",
+      "name": "Meloen",
+      "aliases": [
+        "galiameloen",
+        "cantaloupe",
+        "watermeloen"
+      ],
+      "category": "fruit",
+      "kind": "ingredient",
+      "emoji": "🍈",
+      "icon": "mdi:fruit-watermelon",
+      "shelf_life": {
+        "koelkast": 7,
+        "vriezer": 180,
+        "buiten": 4
+      },
+      "opened_koelkast": 3,
+      "notes": "Aangesneden afgedekt in de koelkast bewaren."
+    },
+    {
+      "id": "pizza-margherita",
+      "name": "Pizza margherita",
+      "aliases": [
+        "pizza",
+        "margherita",
+        "pizza restje"
+      ],
+      "category": "bereid_gerecht",
+      "kind": "gerecht",
+      "emoji": "🍕",
+      "icon": "mdi:pizza",
+      "shelf_life": {
+        "koelkast": 3,
+        "vriezer": 60,
+        "buiten": null
+      },
+      "notes": "Restje pizza afgedekt koelen; opwarmen in de oven of pan."
+    },
+    {
+      "id": "pindakaas",
+      "name": "Pindakaas",
+      "aliases": [
+        "pindakaas pot",
+        "peanut butter"
+      ],
+      "category": "saus_kruiden",
+      "kind": "ingredient",
+      "emoji": "🥜",
+      "icon": "mdi:peanut",
+      "shelf_life": {
+        "koelkast": 365,
+        "vriezer": null,
+        "buiten": 180
+      },
+      "opened_koelkast": 120,
+      "notes": "Hoeft niet in de koelkast; droog en goed afgesloten bewaren."
+    }
+  ]
+}

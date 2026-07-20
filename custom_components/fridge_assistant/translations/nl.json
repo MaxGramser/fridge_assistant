@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fridge Assistant",
+        "description": "Voeg Fridge Assistant toe om je koelkast, vriezer en voorraadkast bij te houden."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Fridge Assistant is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fridge Assistant instellingen",
+        "data": {
+          "warn_days": "Waarschuw zoveel dagen voor de houdbaarheidsdatum",
+          "ai_enabled": "AI-schattingen inschakelen",
+          "ai_agent": "AI conversation-agent (leeg = standaard)",
+          "openai_api_key": "OpenAI API-key (optioneel)",
+          "openai_model": "OpenAI model",
+          "code_format": "Formaat item-code",
+          "notify_enabled": "Meldingen inschakelen",
+          "notify_time": "Tijd dagelijkse controle",
+          "printer_enabled": "Labelprinter inschakelen",
+          "printer_url": "URL van de Label Printer add-on",
+          "label_copies": "Aantal kopieën per print"
+        },
+        "data_description": {
+          "ai_agent": "Welke conversation-agent voor schattingen. Leeg = de standaard Assist-agent.",
+          "openai_api_key": "Indien ingevuld gaan schattingen rechtstreeks naar OpenAI in plaats van de conversation-agent.",
+          "printer_url": "Adres van de optionele Label Printer add-on. De standaard werkt als de meegeleverde add-on is geïnstalleerd."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "items_total": { "name": "Totaal items" },
+      "expiring_soon": { "name": "Bijna over datum" },
+      "expired": { "name": "Over datum" }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fridge Assistant",
+        "description": "Add Fridge Assistant to keep track of your fridge, freezer and pantry."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Fridge Assistant is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fridge Assistant settings",
+        "data": {
+          "warn_days": "Warn this many days before expiry",
+          "ai_enabled": "Enable AI estimates",
+          "ai_agent": "AI conversation agent (empty = default)",
+          "openai_api_key": "OpenAI API key (optional)",
+          "openai_model": "OpenAI model",
+          "code_format": "Item code format",
+          "notify_enabled": "Enable notifications",
+          "notify_time": "Daily check time",
+          "printer_enabled": "Enable label printer",
+          "printer_url": "Label Printer add-on URL",
+          "label_copies": "Copies per print"
+        },
+        "data_description": {
+          "ai_agent": "Which conversation agent to use for estimates. Leave empty for the default Assist agent.",
+          "openai_api_key": "If set, estimates call OpenAI directly instead of the conversation agent.",
+          "printer_url": "Address of the optional Label Printer add-on. The default works when the bundled add-on is installed."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "items_total": { "name": "Total items" },
+      "expiring_soon": { "name": "Expiring soon" },
+      "expired": { "name": "Expired" }
+    }
+  }
+}

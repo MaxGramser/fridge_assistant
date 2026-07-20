@@ -1,0 +1,14 @@
+{
+  "domain": "fridge_assistant",
+  "name": "Fridge Assistant",
+  "version": "0.1.0",
+  "documentation": "https://github.com/thndr-studio/fridge-assistant",
+  "issue_tracker": "https://github.com/thndr-studio/fridge-assistant/issues",
+  "codeowners": ["@thndr-studio"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend", "websocket_api", "panel_custom"],
+  "after_dependencies": ["conversation"],
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "requirements": []
+}

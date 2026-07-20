@@ -1,0 +1,41 @@
+# Home Assistant add-on: Fridge Assistant – Label Printer
+#
+# A generic label printer service: it accepts a finished PNG or PDF over HTTP
+# and prints it on a USB DYMO LabelWriter via CUPS. The Fridge Assistant
+# integration renders the label; this add-on only prints it, so it can be
+# reused to print ANY image/PDF label.
+#
+# TESTED HARDWARE: DYMO LabelWriter 550 + 99014 labels (54 x 101 mm).
+name: "Fridge Assistant – Label Printer"
+version: "0.1.0"
+slug: "label_printer"
+description: >-
+  Print PNG/PDF labels on a USB DYMO LabelWriter. Tested with a LabelWriter 550
+  and 99014 labels (54 x 101 mm). Companion to the Fridge Assistant integration.
+url: "https://github.com/maxdev/fridge-assistant"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+startup: application
+boot: manual
+init: false
+usb: true
+full_access: true
+devices:
+  - /dev/bus/usb
+ports:
+  8000/tcp: 8000
+ports_description:
+  8000/tcp: "HTTP print API (POST /print with a PNG or PDF)"
+map:
+  - share:rw
+options:
+  printer_model: "auto"
+  default_media: "w154h286"
+  log_level: "info"
+schema:
+  printer_model: "list(auto|lw550|lw550t|lw5xl|lw450|lw450t|lw450tt|lw400|lw330)"
+  default_media: "str"
+  log_level: "list(debug|info|warning|error)"

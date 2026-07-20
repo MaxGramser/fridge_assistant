@@ -1,0 +1,122 @@
+add_item:
+  name: Item toevoegen
+  description: Voeg een product toe aan de inventaris. Houdbaarheid wordt automatisch geschat op basis van inhoud en locatie.
+  fields:
+    name:
+      name: Naam
+      description: Weergavenaam van het item.
+      example: Restje lasagne
+      selector:
+        text:
+    contents:
+      name: Inhoud
+      description: Wat zit erin? Wordt gebruikt om een template te matchen.
+      example: lasagne met gehakt
+      selector:
+        text:
+    location:
+      name: Locatie
+      description: Waar ligt het?
+      selector:
+        select:
+          options:
+            - koelkast
+            - vriezer
+            - buiten
+    added_date:
+      name: Datum erin gelegd
+      description: ISO-datum (YYYY-MM-DD). Standaard vandaag.
+      selector:
+        text:
+    expiry_date:
+      name: Houdbaar tot
+      description: ISO-datum (YYYY-MM-DD). Leeg = automatisch schatten.
+      selector:
+        text:
+    quantity:
+      name: Hoeveelheid
+      example: 2 bakjes
+      selector:
+        text:
+
+update_item:
+  name: Item bijwerken
+  description: Werk velden van een bestaand item bij.
+  fields:
+    id:
+      name: Item-ID
+      description: Interne id van het item.
+      required: true
+      selector:
+        text:
+
+remove_item:
+  name: Item verwijderen
+  description: Verwijder een item uit de inventaris.
+  fields:
+    id:
+      name: Item-ID
+      required: true
+      selector:
+        text:
+
+complete_item:
+  name: Item afronden
+  description: Markeer een item als opgegeten of weggegooid. Het item gaat naar de geschiedenis, met wie en wanneer.
+  fields:
+    id:
+      name: Item-ID
+      description: Interne id van het item.
+      required: true
+      selector:
+        text:
+    action:
+      name: Actie
+      required: true
+      selector:
+        select:
+          options:
+            - label: Opgegeten
+              value: eaten
+            - label: Weggegooid
+              value: tossed
+
+remove_expired:
+  name: Verwijder alles over datum
+  description: Verwijder in één keer alle items die over datum zijn (opruim-modus).
+
+estimate:
+  name: AI-houdbaarheidsschatting
+  description: Vraag AI om de houdbaarheid van een product te schatten (koelkast/vriezer/buiten).
+  fields:
+    name:
+      name: Product
+      description: Naam van het product of gerecht.
+      required: true
+      example: krop sla
+      selector:
+        text:
+
+add_template:
+  name: Template toevoegen
+  description: Voeg een eigen template met houdbaarheden toe aan de database.
+  fields:
+    name:
+      name: Naam
+      required: true
+      selector:
+        text:
+
+print_sticker:
+  name: Sticker printen
+  description: Print (in fase 2 via de optionele add-on) een sticker met de item-code.
+  fields:
+    id:
+      name: Item-ID
+      required: true
+      selector:
+        text:
+
+run_check:
+  name: Houdbaarheidscontrole uitvoeren
+  description: Voer nu de controle op bijna-over-datum items uit (event + melding).
