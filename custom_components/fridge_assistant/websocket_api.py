@@ -59,6 +59,7 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_hide_template)
     websocket_api.async_register_command(hass, ws_unhide_template)
     websocket_api.async_register_command(hass, ws_complete_item)
+    websocket_api.async_register_command(hass, ws_restore_item)
     websocket_api.async_register_command(hass, ws_history)
     websocket_api.async_register_command(hass, ws_lookup_barcode)
     websocket_api.async_register_command(hass, ws_print_sticker)
@@ -321,6 +322,26 @@ async def ws_complete_item(hass, connection, msg) -> None:
         },
     )
     connection.send_result(msg["id"], {"event": event})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/restore_item",
+        vol.Required("event_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_restore_item(hass, connection, msg) -> None:
+    """Undo a completion — puts the item back with its original id/code."""
+    runtime = _runtime_or_error(hass, connection, msg)
+    if runtime is None:
+        return
+    item = runtime.store.restore_item(msg["event_id"])
+    if item is None:
+        connection.send_error(msg["id"], "not_found", "Kan niet herstellen.")
+        return
+    await runtime.async_changed()
+    connection.send_result(msg["id"], {"item": item})
 
 
 @websocket_api.websocket_command(

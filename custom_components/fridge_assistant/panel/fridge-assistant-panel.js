@@ -934,15 +934,39 @@ class FridgeAssistantPanel extends HTMLElement {
   }
 
   async _completeItem(item, action, close) {
+    let ev = null;
     try {
-      await this._call("complete_item", { item_id: item.id, action });
+      const res = await this._call("complete_item", { item_id: item.id, action });
+      ev = res && res.event;
     } catch (e) {
       this._toast("Fout: " + (e.message || e), { type: "bad" });
       return;
     }
     close && close();
     const eaten = action === "eaten";
-    this._toast(`${eaten ? "🍽️" : "🗑️"} ${esc(item.name)} ${eaten ? "opgegeten" : "weggegooid"}`);
+    this._toast(
+      `${eaten ? "🍽️" : "🗑️"} ${esc(item.name)} ${eaten ? "opgegeten" : "weggegooid"}`,
+      ev ? { actionLabel: "Ongedaan", onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {}
+    );
+  }
+
+  async _eatScanned(raw, setStatus, count) {
+    const val = String(raw || "").trim().toUpperCase();
+    if (!(/^[A-Z]{2}\d{2}$/.test(val) || /^\d{2}[A-Z]{2}$/.test(val))) {
+      setStatus(`Dit is geen eigen koelkast-label (${val})`);
+      return;
+    }
+    const item = (this._state.items || []).find((i) => (i.code || "").toUpperCase() === val);
+    if (!item) { setStatus(`Geen actief item met code ${val}`); return; }
+    let ev = null;
+    try {
+      const res = await this._call("complete_item", { item_id: item.id, action: "eaten" });
+      ev = res && res.event;
+    } catch (e) { setStatus("Kon niet opeten — probeer opnieuw"); return; }
+    count.n = (count.n || 0) + 1;
+    setStatus(`🍽️ ${item.name} opgegeten (${count.n})`);
+    this._toast(`🍽️ ${esc(item.name)} opgegeten`,
+      ev ? { actionLabel: "Ongedaan", onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {});
   }
 
   /* ---- CLEAN MODE ---- */
@@ -1023,6 +1047,10 @@ class FridgeAssistantPanel extends HTMLElement {
           <div class="m-sub">Je koelkast-label om te zoeken, of een winkelbarcode</div></div>
         <button class="icon-btn" id="sc-close">✕</button>
       </div>
+      <div class="seg sc-mode" id="sc-mode">
+        <button type="button" data-mode="find" class="on">🔎 Zoeken</button>
+        <button type="button" data-mode="eat">🍽️ Opeten</button>
+      </div>
       <div class="scanbox${canLive ? "" : " hidden"}" id="sc-box">
         <video id="sc-video" playsinline muted></video><div class="scan-frame"></div>
       </div>
@@ -1040,14 +1068,33 @@ class FridgeAssistantPanel extends HTMLElement {
       if (reader) { try { reader.reset(); } catch (e) { /* ignore */ } reader = null; }
       if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
     };
-    const done = (raw) => { stop(); this._onScan(raw, h); };
+    let mode = "find", lastCode = "", lastTs = 0;
+    const eatCount = { n: 0 };
+    const setStatus = (t) => { const s = q("#sc-status"); if (s) s.textContent = t; };
+    // Debounced router: search opens the item; eat marks it eaten and keeps scanning.
+    const handle = (raw) => {
+      const now = Date.now();
+      if (raw === lastCode && now - lastTs < 2500) return;
+      lastCode = raw; lastTs = now;
+      if (mode === "eat") this._eatScanned(raw, setStatus, eatCount);
+      else { stop(); this._onScan(raw, h); }
+    };
+    const modeEl = q("#sc-mode");
+    modeEl.querySelectorAll("button").forEach((b) =>
+      b.addEventListener("click", () => {
+        mode = b.dataset.mode;
+        modeEl.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+        setStatus(mode === "eat"
+          ? "🍽️ Scan je labels — elk item wordt meteen opgegeten"
+          : "Richt op de barcode…");
+      }));
     q("#sc-close").addEventListener("click", () => { stop(); h.close(); });
 
     q("#sc-manual").addEventListener("click", () => {
       stop();
       const box = q("#sc-box"); if (box) box.classList.add("hidden");
       q("#sc-status").innerHTML = `<div class="scan-manual"><input id="sc-code" placeholder="Code, bv. AB12" autocomplete="off" autocapitalize="characters" enterkeyhint="search"><button class="btn primary" id="sc-go">Zoek</button></div>`;
-      const go = () => { const v = (q("#sc-code").value || "").trim(); if (v) done(v); };
+      const go = () => { const v = (q("#sc-code").value || "").trim(); if (v) handle(v); };
       q("#sc-go").addEventListener("click", go);
       q("#sc-code").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
       setTimeout(() => q("#sc-code") && q("#sc-code").focus(), 60);
@@ -1069,7 +1116,7 @@ class FridgeAssistantPanel extends HTMLElement {
           try { const r = await new zxing.BrowserMultiFormatReader().decodeFromImageUrl(url); raw = r && r.getText(); }
           finally { URL.revokeObjectURL(url); }
         }
-        if (raw) return done(raw);
+        if (raw) { handle(raw); return; }
         q("#sc-status").textContent = "Geen barcode gevonden — probeer dichterbij en scherp.";
       } catch (err) { q("#sc-status").textContent = "Geen barcode gevonden — probeer dichterbij en scherp."; }
     });
@@ -1099,9 +1146,9 @@ class FridgeAssistantPanel extends HTMLElement {
         if (stopped || !video.isConnected) { stop(); return; }
         try {
           const codes = await det.detect(video);
-          if (codes && codes.length) return done(codes[0].rawValue);
+          if (codes && codes.length) handle(codes[0].rawValue);
         } catch (e) { /* transient decode error */ }
-        timer = setTimeout(tick, 170);
+        if (!stopped) timer = setTimeout(tick, 170);
       };
       tick();
     } else {
@@ -1109,7 +1156,7 @@ class FridgeAssistantPanel extends HTMLElement {
       const cb = (result) => {
         if (stopped) return;
         if (!video.isConnected) { stop(); return; }
-        if (result) done(result.getText());
+        if (result) handle(result.getText());
       };
       try {
         reader = new zxing.BrowserMultiFormatReader();
@@ -1195,7 +1242,9 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="hi-title">${esc(it.name || "?")} ${it.code ? `<span class="code">${esc(it.code)}</span>` : ""}</div>
         <div class="hi-sub2">${act}${it.location ? ` · ${lm.emoji || ""} ${esc(lm.label || it.location)}` : ""}</div>
       </div>
-      <div class="hi-right">${who}<div class="hi-time">${esc(this._relTime(e.ts))}</div></div>
+      <div class="hi-right">${who}<div class="hi-time">${esc(this._relTime(e.ts))}</div>
+        <button class="hi-undo" data-restore="${esc(e.id)}" title="Terugzetten in de koelkast">↩︎ Terug</button>
+      </div>
     </div>`;
   }
 
@@ -1229,6 +1278,20 @@ class FridgeAssistantPanel extends HTMLElement {
         listEl.innerHTML = `<div class="empty small"><div class="empty-emoji">📭</div><p>Nog niets opgegeten of weggegooid.</p></div>`;
       } else {
         listEl.innerHTML = loaded.map((e) => this._historyRow(e)).join("");
+        listEl.querySelectorAll("[data-restore]").forEach((b) =>
+          b.addEventListener("click", async () => {
+            const id = b.dataset.restore;
+            b.disabled = true;
+            try { await this._call("restore_item", { event_id: id }); }
+            catch (e) { b.disabled = false; this._toast("Herstellen mislukt", { type: "bad" }); return; }
+            const idx = loaded.findIndex((x) => x.id === id);
+            if (idx >= 0) loaded.splice(idx, 1);
+            total = Math.max(0, total - 1);
+            offset = Math.max(0, offset - 1);
+            const row = b.closest(".hi-row"); if (row) row.remove();
+            q("#hi-sub").textContent = total ? `${total} afgerond${total >= 500 ? " (laatste 500)" : ""}` : "";
+            this._toast("↩︎ Teruggezet in de koelkast");
+          }));
       }
       q("#hi-sub").textContent = total ? `${total} afgerond${total >= 500 ? " (laatste 500)" : ""}` : "";
       const wrap = q("#hi-more-wrap");
@@ -1494,6 +1557,10 @@ const STYLES = `
 .hi-right{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
 .hi-right .who{font-size:12px;color:var(--fa-muted);}
 .hi-time{font-size:11px;color:var(--fa-muted);}
+.hi-undo{border:none;background:transparent;color:var(--fa-accent);font-size:12px;font-weight:600;cursor:pointer;padding:3px 6px;margin-top:2px;border-radius:8px;}
+.hi-undo:hover{background:var(--fa-border);}
+.hi-undo:disabled{opacity:.5;}
+.sc-mode{margin:2px 0 10px;}
 
 .clean-sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--fa-muted);margin:14px 2px 6px;font-weight:600;}
 .clean-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--fa-border);}

@@ -473,23 +473,28 @@ class FridgeStore:
             "action": action,
             "by": by,
             "by_name": by_name,
-            "item": {
-                "id": item.get("id"),
-                "name": item.get("name"),
-                "code": item.get("code"),
-                "emoji": item.get("emoji"),
-                "location": item.get("location"),
-                "category": item.get("category"),
-                "kind": item.get("kind"),
-                "added_date": item.get("added_date"),
-                "added_by_name": item.get("added_by_name"),
-                "barcode": item.get("barcode"),
-            },
+            # Full snapshot so a completion can be undone losslessly, keeping
+            # the original id + code (so the physical label still matches).
+            "item": dict(item),
         }
         self.history.insert(0, event)
         if len(self.history) > MAX_HISTORY:
             del self.history[MAX_HISTORY:]
         return event
+
+    def restore_item(self, event_id: str) -> dict[str, Any] | None:
+        """Undo a completion: put the item back and drop its history event."""
+        for i, ev in enumerate(self.history):
+            if ev.get("id") == event_id:
+                snap = ev.get("item") or {}
+                if not snap.get("id"):
+                    return None
+                item = dict(snap)
+                item["updated_at"] = dt_util.now().isoformat()
+                self.items[item["id"]] = item
+                del self.history[i]
+                return item
+        return None
 
     def history_page(self, limit: int = 25, offset: int = 0) -> dict[str, Any]:
         """A slice of the history (newest first) plus the total count."""
