@@ -2046,6 +2046,7 @@ const STYLES = `
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .18s;z-index:50;padding:0;}
 .overlay.show{opacity:1;}
 @media(min-width:640px){.overlay{align-items:center;padding:24px;}}
+@media(max-width:480px){.grid2{grid-template-columns:1fr;gap:0;}}
 .modal{background:var(--fa-card);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;overscroll-behavior:contain;border-radius:22px 22px 0 0;padding:18px;transform:translateY(24px);transition:transform .2s;box-shadow:0 -10px 40px rgba(0,0,0,.2);}
 .modal.wide{max-width:600px;}
 @media(min-width:640px){.modal{border-radius:22px;transform:translateY(12px) scale(.98);}}
