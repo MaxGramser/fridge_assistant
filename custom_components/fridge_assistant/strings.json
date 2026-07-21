@@ -41,5 +41,119 @@
       "expiring_soon": { "name": "Expiring soon" },
       "expired": { "name": "Expired" }
     }
+  },
+  "selector": {
+    "item_location": {
+      "options": {
+        "koelkast": "Fridge",
+        "vriezer": "Freezer",
+        "buiten": "Pantry"
+      }
+    },
+    "complete_action": {
+      "options": {
+        "eaten": "Eaten",
+        "tossed": "Tossed"
+      }
+    }
+  },
+  "services": {
+    "add_item": {
+      "name": "Add item",
+      "description": "Add a product to the inventory. Shelf life is estimated automatically based on contents and location.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Display name of the item."
+        },
+        "contents": {
+          "name": "Contents",
+          "description": "What's inside? Used to match a template."
+        },
+        "location": {
+          "name": "Location",
+          "description": "Where is it stored?"
+        },
+        "added_date": {
+          "name": "Date added",
+          "description": "ISO date (YYYY-MM-DD). Defaults to today."
+        },
+        "expiry_date": {
+          "name": "Best before",
+          "description": "ISO date (YYYY-MM-DD). Empty = estimate automatically."
+        },
+        "quantity": {
+          "name": "Quantity"
+        }
+      }
+    },
+    "update_item": {
+      "name": "Update item",
+      "description": "Update fields of an existing item.",
+      "fields": {
+        "id": {
+          "name": "Item ID",
+          "description": "Internal id of the item."
+        }
+      }
+    },
+    "remove_item": {
+      "name": "Remove item",
+      "description": "Remove an item from the inventory.",
+      "fields": {
+        "id": {
+          "name": "Item ID"
+        }
+      }
+    },
+    "complete_item": {
+      "name": "Complete item",
+      "description": "Mark an item as eaten or tossed. The item moves to history, with who and when.",
+      "fields": {
+        "id": {
+          "name": "Item ID",
+          "description": "Internal id of the item."
+        },
+        "action": {
+          "name": "Action"
+        }
+      }
+    },
+    "remove_expired": {
+      "name": "Remove all expired",
+      "description": "Remove all items that are past their expiry date at once (cleanup mode)."
+    },
+    "estimate": {
+      "name": "AI shelf-life estimate",
+      "description": "Ask AI to estimate the shelf life of a product (fridge/freezer/pantry).",
+      "fields": {
+        "name": {
+          "name": "Product",
+          "description": "Name of the product or dish."
+        }
+      }
+    },
+    "add_template": {
+      "name": "Add template",
+      "description": "Add your own template with shelf lives to the database.",
+      "fields": {
+        "name": {
+          "name": "Name"
+        }
+      }
+    },
+    "print_sticker": {
+      "name": "Print sticker",
+      "description": "Print (in phase 2 via the optional add-on) a sticker with the item code.",
+      "fields": {
+        "id": {
+          "name": "Item ID"
+        }
+      }
+    },
+    "run_check": {
+      "name": "Run expiry check",
+      "description": "Run the check for soon-to-expire items now (event + notification)."
+    }
   }
 }
