@@ -788,20 +788,24 @@ class FridgeAssistantPanel extends HTMLElement {
 
   _itemCard(i, lang) {
     const lm = this._locMeta(i.location);
+    // First word of the location label keeps the meta line short in both
+    // languages ("Buiten koelkast" -> "Buiten", "Fridge" -> "Fridge").
+    const locShort = (lm.label || i.location || "").split(" ")[0];
+    const contents = i.contents && i.contents !== i.name ? i.contents : "";
     return `<div class="card" data-item="${i.id}">
       <div class="card-emoji">${i.emoji || "🍽️"}</div>
       <div class="card-main">
         <div class="card-title">${esc(i.name)}</div>
         <div class="card-sub">
-          <span class="tag">${lm.emoji || ""} ${esc(lm.label || i.location)}</span>
+          <span class="cs-fix">${lm.emoji || ""} ${esc(locShort)}</span>
+          <span class="cs-sep">·</span>
           <span class="code">${esc(i.code)}</span>
-          ${i.contents && i.contents !== i.name ? `<span class="muted">${esc(i.contents)}</span>` : ""}
-          ${i.added_by_name ? `<span class="who">${this._avatar(i.added_by_name, i.added_by_picture, 16)}${esc(i.added_by_name.split(" ")[0])}</span>` : ""}
+          ${contents ? `<span class="cs-sep">·</span><span class="cs-more">${esc(contents)}</span>` : ""}
         </div>
       </div>
       <div class="card-right">
         <div class="status" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left, lang)}</div>
-        <div class="card-when">${i.expiry_date ? fmtDate(i.expiry_date, lang) : ""}</div>
+        <div class="card-when">${i.added_by_name ? `<span class="who" title="${esc(i.added_by_name)}">${this._avatar(i.added_by_name, i.added_by_picture, 15)}</span>` : ""}${i.expiry_date ? `<span>${fmtDate(i.expiry_date, lang)}</span>` : ""}</div>
       </div>
       <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}">🏷️</button>
     </div>`;
@@ -1099,9 +1103,16 @@ class FridgeAssistantPanel extends HTMLElement {
           const res = await this._call("add_item", { item: payload });
           h.close();
           const code = res?.item?.code;
-          this._toast(this.t("addedToast", code), {
-            actionLabel: this.t("printActionLabel"), onAction: () => this._printSticker(res.item.id),
-          });
+          if (this._state.options.printer_enabled && res?.item) {
+            // Label printing is on -> jump straight into the print flow, so
+            // nobody has to hunt the fresh item down in the list.
+            this._toast(this.t("addedToast", code));
+            this._printSticker(res.item.id, res.item);
+          } else {
+            this._toast(this.t("addedToast", code), {
+              actionLabel: this.t("printActionLabel"), onAction: () => this._printSticker(res.item.id),
+            });
+          }
         }
       } catch (e) {
         q("#f-submit").disabled = false;
@@ -1916,8 +1927,10 @@ class FridgeAssistantPanel extends HTMLElement {
     load();
   }
 
-  _printSticker(id) {
-    const item = (this._state.items || []).find((x) => x.id === id);
+  _printSticker(id, itemHint = null) {
+    // itemHint covers the just-added case: the state push may not have
+    // landed yet, but the add response already has name/code.
+    const item = (this._state.items || []).find((x) => x.id === id) || itemHint;
     const opts = this._state.options || {};
     const p = this._state.printer || {};
     const copies = opts.label_copies || 1;
@@ -2043,12 +2056,14 @@ const STYLES = `
 .link{background:none;border:none;color:var(--fa-accent);cursor:pointer;font-size:14px;padding:8px 2px;font-weight:500;}
 
 .cards{display:flex;flex-direction:column;gap:8px;}
-.card{display:flex;align-items:center;gap:12px;background:var(--fa-card);border:1px solid var(--fa-border);border-radius:16px;padding:12px 12px;cursor:pointer;transition:.15s;position:relative;}
+.card{display:flex;align-items:center;gap:10px;background:var(--fa-card);border:1px solid var(--fa-border);border-radius:16px;padding:11px 12px;cursor:pointer;transition:.15s;position:relative;}
 .card:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.08);}
-.card-emoji{font-size:30px;width:44px;text-align:center;flex:none;}
+.card-emoji{font-size:26px;width:38px;text-align:center;flex:none;}
 .card-main{flex:1;min-width:0;}
 .card-title{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.card-sub{display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap;}
+.card-sub{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:nowrap;overflow:hidden;font-size:12px;color:var(--fa-muted);}
+.cs-fix,.cs-sep,.card-sub .code{flex:none;}
+.cs-more{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tag{font-size:12px;color:var(--fa-muted);}
 .code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;background:var(--fa-border);border-radius:6px;padding:1px 6px;letter-spacing:.05em;}
 .muted{color:var(--fa-muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
@@ -2059,7 +2074,7 @@ const STYLES = `
 .avatar-i{color:#fff;font-weight:700;line-height:1;}
 .d-row b.who{gap:7px;}
 .status{font-size:13px;font-weight:600;color:var(--c);}
-.card-when{font-size:11px;color:var(--fa-muted);margin-top:2px;}
+.card-when{font-size:11px;color:var(--fa-muted);margin-top:2px;display:flex;align-items:center;gap:5px;justify-content:flex-end;min-height:15px;}
 .card-print{font-size:15px;flex:none;}
 
 .strip{margin-bottom:16px;}
