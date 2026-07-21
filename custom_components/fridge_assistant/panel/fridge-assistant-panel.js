@@ -77,6 +77,9 @@ const STRINGS = {
     addNamePlaceholder: "Wat leg je erin? bv. krop sla",
     dateInFieldLabel: "Datum erin",
     expiryLabel: "Houdbaar tot",
+    datePickPlaceholder: "Kies datum",
+    dateOptionalPlaceholder: "Optioneel",
+    clearDateTitle: "Datum wissen",
     moreOptions: "Meer opties ▾",
     lessOptions: "Minder opties ▴",
     displayNameLabel: "Aparte naam (optioneel)",
@@ -273,6 +276,9 @@ const STRINGS = {
     addNamePlaceholder: "What are you putting in? e.g. lettuce",
     dateInFieldLabel: "Date added",
     expiryLabel: "Use by",
+    datePickPlaceholder: "Pick a date",
+    dateOptionalPlaceholder: "Optional",
+    clearDateTitle: "Clear date",
     moreOptions: "More options ▾",
     lessOptions: "Fewer options ▴",
     displayNameLabel: "Custom name (optional)",
@@ -836,6 +842,50 @@ class FridgeAssistantPanel extends HTMLElement {
     return { overlay, modal: overlay.querySelector(".modal"), close };
   }
 
+  /* Native date inputs render inconsistently (iOS ignores widths, empty
+     fields show nothing useful), so the input sits invisible on top of an
+     own display layer: formatted date in the user's language, a clear
+     placeholder when empty, and an optional ✕. The native picker stays —
+     taps land on the (transparent) input itself. */
+  _wireDateField(inp, placeholder, lang) {
+    const wrap = inp.closest(".datefield");
+    const disp = wrap.querySelector(".df-display");
+    const thisYear = new Date().getFullYear();
+    const sync = () => {
+      const v = inp.value;
+      wrap.classList.toggle("has-value", !!v);
+      if (v) {
+        const dt = parseISO(v);
+        const year = dt && dt.getUTCFullYear() !== thisYear ? ` ${dt.getUTCFullYear()}` : "";
+        disp.innerHTML = `<span class="df-ico">📅</span><b>${fmtDate(v, lang)}${year}</b>`;
+      } else {
+        disp.innerHTML = `<span class="df-ico">📅</span><span class="df-ph">${esc(placeholder)}</span>`;
+      }
+    };
+    // Programmatic writes (suggestions, AI estimates) assign .value directly
+    // and fire no events; intercept the property on this one instance so the
+    // display can never go stale, whatever code sets the date.
+    const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    Object.defineProperty(inp, "value", {
+      get() { return desc.get.call(this); },
+      set(v) { desc.set.call(this, v); sync(); },
+    });
+    inp.addEventListener("input", sync);
+    inp.addEventListener("change", sync);
+    // Desktop browsers only open the calendar from their own icon (which is
+    // invisible here) — ask for the picker explicitly on click/tap.
+    inp.addEventListener("click", () => { try { inp.showPicker?.(); } catch (_) {} });
+    const clr = wrap.querySelector(".df-clear");
+    if (clr) clr.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inp.value = "";
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    sync();
+    return sync;
+  }
+
   /* ---- ADD / EDIT ---- */
   _openAddModal(prefill = {}, editItem = null) {
     const isEdit = !!editItem;
@@ -871,8 +921,8 @@ class FridgeAssistantPanel extends HTMLElement {
         ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button type="button" data-kind="${k}" class="${m.kind === k ? "on" : ""}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
       </div>
       <div class="grid2">
-        <label class="field"><span>${this.t("dateInFieldLabel")}</span><input type="date" id="f-added" value="${m.added}"></label>
-        <label class="field"><span>${this.t("expiryLabel")}</span><input type="date" id="f-expiry" value="${m.expiry}"></label>
+        <label class="field"><span>${this.t("dateInFieldLabel")}</span><div class="datefield"><input type="date" id="f-added" value="${m.added}"><span class="df-display"></span></div></label>
+        <label class="field"><span>${this.t("expiryLabel")}</span><div class="datefield"><input type="date" id="f-expiry" value="${m.expiry}"><span class="df-display"></span><button type="button" class="df-clear" title="${this.t("clearDateTitle")}" aria-label="${this.t("clearDateTitle")}">✕</button></div></label>
       </div>
       <div class="expiry-hint" id="f-hint"></div>
       <button class="link" id="f-adv">${this.t("moreOptions")}</button>
@@ -911,6 +961,8 @@ class FridgeAssistantPanel extends HTMLElement {
       hintEl.innerHTML = `<span style="color:${col}">● ${daysLabel(dl, lang)}</span>`;
     };
     updateHint();
+    this._wireDateField(addedEl, this.t("datePickPlaceholder"), lang);
+    this._wireDateField(expEl, this.t("dateOptionalPlaceholder"), lang);
 
     const applySuggestion = (expiryDate, source) => {
       if (!m.expiryManual && expiryDate) { expEl.value = expiryDate; m.expiry = expiryDate; }
@@ -2052,10 +2104,16 @@ const STYLES = `
 .field>span{font-size:13px;color:var(--fa-muted);font-weight:500;}
 .field input{min-width:0;width:100%;box-sizing:border-box;height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);outline:none;transition:.15s;}
 .field input:focus{border-color:var(--fa-accent);box-shadow:0 0 0 4px rgba(0,122,255,.1);}
-.field input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:flex;align-items:center;}
-.field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;}
+.datefield{position:relative;min-width:0;}
+.datefield input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;z-index:1;cursor:pointer;-webkit-appearance:none;appearance:none;}
+.df-display{display:flex;align-items:center;gap:8px;height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);white-space:nowrap;overflow:hidden;min-width:0;}
+.df-display b{font-weight:600;}
+.df-ico{flex:none;}
+.df-ph{color:var(--fa-muted);overflow:hidden;text-overflow:ellipsis;}
+.datefield input:focus + .df-display{border-color:var(--fa-accent);box-shadow:0 0 0 4px rgba(0,122,255,.1);}
+.df-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;display:none;width:28px;height:28px;border:none;border-radius:50%;background:var(--fa-border);color:var(--fa-muted);font-size:13px;cursor:pointer;align-items:center;justify-content:center;padding:0;}
+.datefield.has-value .df-clear{display:flex;}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
-@media(max-width:480px){.grid2{display:block;}}
 .expiry-hint{font-size:13px;font-weight:600;min-height:18px;margin:-2px 2px 4px;}
 
 .seg{display:flex;gap:6px;background:var(--fa-bg);border-radius:12px;padding:4px;margin:12px 0;}
