@@ -19,6 +19,7 @@ from .const import (
     ACTION_EATEN,
     CATEGORIES,
     CATEGORY_KIND,
+    DEFAULT_CATEGORY,
     DEFAULT_CODE_FORMAT,
     DEFAULT_EMOJI,
     DEFAULT_ICON,
@@ -33,6 +34,9 @@ from .const import (
     SOURCE_TEMPLATE,
     STORAGE_KEY,
     STORAGE_VERSION,
+    canonical_category,
+    canonical_kind,
+    canonical_location,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,8 +104,46 @@ def item_age_days(item: dict[str, Any], today: date) -> int | None:
 
 
 def template_kind(tpl: dict[str, Any]) -> str:
-    """Big group a template belongs to: 'ingredient' or 'gerecht'."""
+    """Big group a template belongs to: 'ingredient' or 'dish'."""
     return tpl.get("kind") or CATEGORY_KIND.get(tpl.get("category"), DEFAULT_KIND)
+
+
+def _migrate_record_v1(record: dict[str, Any]) -> None:
+    """Rewrite one v1 item/template dict to the English identifiers."""
+    for field, canon in (
+        ("location", canonical_location),
+        ("category", canonical_category),
+        ("kind", canonical_kind),
+    ):
+        if field in record:
+            record[field] = canon(record[field])
+    sl = record.get("shelf_life")
+    if isinstance(sl, dict):
+        record["shelf_life"] = {canonical_location(k): v for k, v in sl.items()}
+    if "opened_koelkast" in record:
+        record.setdefault("opened_fridge", record.pop("opened_koelkast"))
+
+
+class FridgeDataStore(Store):
+    """Versioned store; migrates v1 (Dutch identifiers) to v2 (English)."""
+
+    async def _async_migrate_func(
+        self, old_major_version: int, old_minor_version: int, old_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        if old_major_version == 1:
+            _LOGGER.info(
+                "Migrating Fridge Assistant storage v1 -> v2 "
+                "(Dutch to English identifiers)"
+            )
+            for item in old_data.get("items", []):
+                _migrate_record_v1(item)
+            for tpl in old_data.get("user_templates", []):
+                _migrate_record_v1(tpl)
+            for event in old_data.get("history", []):
+                snap = event.get("item")
+                if isinstance(snap, dict):
+                    _migrate_record_v1(snap)
+        return old_data
 
 
 class FridgeStore:
@@ -109,7 +151,7 @@ class FridgeStore:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
-        self._store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._store: Store = FridgeDataStore(hass, STORAGE_VERSION, STORAGE_KEY)
         self.items: dict[str, dict[str, Any]] = {}
         self.user_templates: dict[str, dict[str, Any]] = {}
         self.hidden: set[str] = set()
@@ -279,21 +321,23 @@ class FridgeStore:
             "id": tpl_id,
             "name": data.get("name", existing.get("name", tpl_id)),
             "aliases": data.get("aliases", existing.get("aliases", [])),
-            "category": data.get("category", existing.get("category", "overig")),
+            "category": canonical_category(
+                data.get("category", existing.get("category", DEFAULT_CATEGORY))
+            ),
             "emoji": data.get("emoji", existing.get("emoji", DEFAULT_EMOJI)),
             "icon": data.get("icon", existing.get("icon", DEFAULT_ICON)),
             "shelf_life": data.get("shelf_life", existing.get("shelf_life", {})),
             "notes": data.get("notes", existing.get("notes", "")),
             "source": data.get("source", "user"),
         }
-        tpl["kind"] = (
+        tpl["kind"] = canonical_kind(
             data.get("kind")
             or existing.get("kind")
             or CATEGORY_KIND.get(tpl["category"], DEFAULT_KIND)
         )
-        if "opened_koelkast" in data or "opened_koelkast" in existing:
-            tpl["opened_koelkast"] = data.get(
-                "opened_koelkast", existing.get("opened_koelkast")
+        if "opened_fridge" in data or "opened_fridge" in existing:
+            tpl["opened_fridge"] = data.get(
+                "opened_fridge", existing.get("opened_fridge")
             )
         self.user_templates[tpl_id] = tpl
         return tpl
@@ -338,7 +382,7 @@ class FridgeStore:
             if not item.get("icon"):
                 item["icon"] = template.get("icon") or DEFAULT_ICON
             if not item.get("category"):
-                item["category"] = template.get("category") or "overig"
+                item["category"] = template.get("category") or DEFAULT_CATEGORY
         cat = item.get("category")
         if not item.get("emoji"):
             item["emoji"] = CATEGORIES.get(cat, {}).get("emoji", DEFAULT_EMOJI)
@@ -351,7 +395,9 @@ class FridgeStore:
         """Create a new item dict (not yet stored)."""
         now = dt_util.now()
         today = now.date()
-        location = data.get("location") if data.get("location") in LOCATIONS else LOCATIONS[0]
+        # Accept legacy Dutch values from old automations / service calls.
+        loc = canonical_location(data.get("location"))
+        location = loc if loc in LOCATIONS else LOCATIONS[0]
 
         template = self.get_template(data.get("template_id"))
         if template is None and data.get("contents"):
@@ -378,7 +424,8 @@ class FridgeStore:
             "name": (data.get("name") or data.get("contents") or "Onbekend").strip(),
             "contents": (data.get("contents") or "").strip(),
             "location": location,
-            "category": data.get("category") or (template or {}).get("category"),
+            "category": canonical_category(data.get("category"))
+            or (template or {}).get("category"),
             "emoji": data.get("emoji"),
             "icon": data.get("icon"),
             "photo": data.get("photo"),
@@ -399,7 +446,7 @@ class FridgeStore:
         }
         self._decorate_from_template(item, template)
         # An explicit kind from the user wins; otherwise derive it.
-        kind = data.get("kind")
+        kind = canonical_kind(data.get("kind"))
         if kind not in (KIND_INGREDIENT, KIND_DISH):
             kind = (
                 template_kind(template)
@@ -437,12 +484,19 @@ class FridgeStore:
         for key, value in changes.items():
             if key not in allowed:
                 continue
-            # Guard the two enum-ish fields the UI and counts rely on, so a bad
-            # value can't slip in and break filtering/labels.
-            if key == "location" and value not in LOCATIONS:
-                continue
-            if key == "kind" and value not in (KIND_INGREDIENT, KIND_DISH):
-                continue
+            # Accept legacy Dutch enum values, then guard the enum-ish fields
+            # the UI and counts rely on, so a bad value can't slip in and
+            # break filtering/labels.
+            if key == "location":
+                value = canonical_location(value)
+                if value not in LOCATIONS:
+                    continue
+            if key == "kind":
+                value = canonical_kind(value)
+                if value not in (KIND_INGREDIENT, KIND_DISH):
+                    continue
+            if key == "category":
+                value = canonical_category(value)
             item[key] = value
         item["updated_at"] = dt_util.now().isoformat()
         return item

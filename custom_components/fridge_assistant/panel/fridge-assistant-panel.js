@@ -14,31 +14,31 @@ const MONTHS = {
 // (locations/categories/kinds). The backend still sends emoji/icon; only the
 // label text is overridden here, per the active language.
 const LOCATION_LABELS = {
-  nl: { koelkast: "Koelkast", vriezer: "Vriezer", buiten: "Buiten koelkast" },
-  en: { koelkast: "Fridge", vriezer: "Freezer", buiten: "Pantry" },
+  nl: { fridge: "Koelkast", freezer: "Vriezer", pantry: "Buiten koelkast" },
+  en: { fridge: "Fridge", freezer: "Freezer", pantry: "Pantry" },
 };
 const CATEGORY_LABELS = {
   nl: {
-    groente: "Groente", fruit: "Fruit", zuivel: "Zuivel", vlees: "Vlees", vis: "Vis",
-    bereid_gerecht: "Bereid gerecht", brood_bakkerij: "Brood & bakkerij",
-    saus_kruiden: "Saus & kruiden", dranken: "Dranken", eieren: "Eieren",
-    restjes: "Restjes", overig: "Overig",
+    vegetables: "Groente", fruit: "Fruit", dairy: "Zuivel", meat: "Vlees", fish: "Vis",
+    prepared_dish: "Bereid gerecht", bread_bakery: "Brood & bakkerij",
+    sauces_spices: "Saus & kruiden", drinks: "Dranken", eggs: "Eieren",
+    leftovers: "Restjes", other: "Overig",
   },
   en: {
-    groente: "Vegetables", fruit: "Fruit", zuivel: "Dairy", vlees: "Meat", vis: "Fish",
-    bereid_gerecht: "Prepared dish", brood_bakkerij: "Bakery",
-    saus_kruiden: "Sauces & spices", dranken: "Drinks", eieren: "Eggs",
-    restjes: "Leftovers", overig: "Other",
+    vegetables: "Vegetables", fruit: "Fruit", dairy: "Dairy", meat: "Meat", fish: "Fish",
+    prepared_dish: "Prepared dish", bread_bakery: "Bakery",
+    sauces_spices: "Sauces & spices", drinks: "Drinks", eggs: "Eggs",
+    leftovers: "Leftovers", other: "Other",
   },
 };
 const KIND_LABELS = {
   nl: {
     ingredient: { label: "Losse ingrediënten", short: "Ingrediënten" },
-    gerecht: { label: "Gerechten", short: "Gerechten" },
+    dish: { label: "Gerechten", short: "Gerechten" },
   },
   en: {
     ingredient: { label: "Individual ingredients", short: "Ingredients" },
-    gerecht: { label: "Dishes", short: "Dishes" },
+    dish: { label: "Dishes", short: "Dishes" },
   },
 };
 
@@ -741,7 +741,7 @@ class FridgeAssistantPanel extends HTMLElement {
     let html = "";
     if (this._filterLoc === "all" && this._filterKind === "all" && !this._search && urgent.length) {
       const kinds = this._state.kinds || {};
-      const order = Object.keys(kinds).length ? Object.keys(kinds) : ["ingredient", "gerecht"];
+      const order = Object.keys(kinds).length ? Object.keys(kinds) : ["ingredient", "dish"];
       const groups = order
         .map((k) => [k, urgent.filter((i) => this._kindOf(i) === k)])
         .filter(([, arr]) => arr.length);
@@ -823,7 +823,7 @@ class FridgeAssistantPanel extends HTMLElement {
   _openAddModal(prefill = {}, editItem = null) {
     const isEdit = !!editItem;
     const m = {
-      location: prefill.location || editItem?.location || "koelkast",
+      location: prefill.location || editItem?.location || "fridge",
       added: prefill.added_date || editItem?.added_date || todayISO(),
       expiry: prefill.expiry_date || editItem?.expiry_date || "",
       expiryManual: isEdit ? editItem?.expiry_source === "manual" : false,
@@ -835,7 +835,7 @@ class FridgeAssistantPanel extends HTMLElement {
       aiResult: null,
     };
     const locs = this._state.locations;
-    const kinds = this._state.kinds || { ingredient: {}, gerecht: {} };
+    const kinds = this._state.kinds || { ingredient: {}, dish: {} };
     const nameVal = editItem ? editItem.name : (prefill.name || "");
 
     const h = this._openModal(`
@@ -1147,7 +1147,7 @@ class FridgeAssistantPanel extends HTMLElement {
         return `<button class="tp-item" data-id="${t.id}">
           <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
           <span class="tp-name"><b>${esc(t.name)}</b><small>${this._kindMeta(this._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}${t.source === "user" || t.source === "ai" ? this.t("ownSuffix") : ""}</small></span>
-          <span class="tp-sl">${["koelkast", "vriezer", "buiten"].map((l) => sl[l] ? `<i>${({ koelkast: "🧊", vriezer: "❄️", buiten: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
+          <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${({ fridge: "🧊", freezer: "❄️", pantry: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
         </button>`;
       }).join("") || `<div class="empty small"><p>${this.t("nothingFound")}</p></div>`;
       listEl.querySelectorAll(".tp-item").forEach((b) =>
@@ -1225,7 +1225,7 @@ class FridgeAssistantPanel extends HTMLElement {
         return `<button class="tp-item" data-id="${t.id}">
           <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
           <span class="tp-name"><b>${esc(t.name)}${badge}</b><small>${this._kindMeta(this._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}</small></span>
-          <span class="tp-sl">${["koelkast", "vriezer", "buiten"].map((l) => sl[l] ? `<i>${({ koelkast: "🧊", vriezer: "❄️", buiten: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
+          <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${({ fridge: "🧊", freezer: "❄️", pantry: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
         </button>`;
       }).join("") || `<div class="empty small"><p>${this.t("nothingInGroup")}</p></div>`;
       listEl.querySelectorAll(".tp-item").forEach((b) =>
@@ -1294,14 +1294,14 @@ class FridgeAssistantPanel extends HTMLElement {
   _openTemplateEditor(tpl, isNew, onChanged) {
     const cats = this._state.categories;
     const locs = this._state.locations;
-    const t = tpl || { name: "", emoji: "", category: "overig", shelf_life: {}, aliases: [], notes: "" };
-    const catOf = (k) => this._catMeta(k) || this._catMeta("overig");
+    const t = tpl || { name: "", emoji: "", category: "other", shelf_life: {}, aliases: [], notes: "" };
+    const catOf = (k) => this._catMeta(k) || this._catMeta("other");
     const kinds = this._state.kinds || {};
     const curKind = t.kind || this._kindOf(t);
     const sl = t.shelf_life || {};
     const catOptions = Object.keys(cats).map((k) => {
       const cm = this._catMeta(k);
-      return `<option value="${k}" ${k === (t.category || "overig") ? "selected" : ""}>${cm.emoji} ${cm.label}</option>`;
+      return `<option value="${k}" ${k === (t.category || "other") ? "selected" : ""}>${cm.emoji} ${cm.label}</option>`;
     }).join("");
     const dayField = (loc) => {
       const lm = this._locMeta(loc);

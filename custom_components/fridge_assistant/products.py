@@ -14,7 +14,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import resolve_language
+from .const import DEFAULT_CATEGORY, resolve_language
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,16 +26,16 @@ _FIELDS = (
 
 # Map OpenFoodFacts category tags onto our own coarse categories.
 _CATEGORY_KEYWORDS: list[tuple[tuple[str, ...], str]] = [
-    (("milk", "dairy", "yogurt", "yoghurt", "cheese", "butter", "cream"), "zuivel"),
-    (("egg",), "eieren"),
-    (("beverage", "soda", "water", "juice", "drink", "cola", "coffee", "tea"), "dranken"),
-    (("meat", "poultry", "chicken", "beef", "pork", "sausage", "ham"), "vlees"),
-    (("fish", "seafood", "salmon", "tuna", "shrimp"), "vis"),
-    (("vegetable", "legume"), "groente"),
+    (("milk", "dairy", "yogurt", "yoghurt", "cheese", "butter", "cream"), "dairy"),
+    (("egg",), "eggs"),
+    (("beverage", "soda", "water", "juice", "drink", "cola", "coffee", "tea"), "drinks"),
+    (("meat", "poultry", "chicken", "beef", "pork", "sausage", "ham"), "meat"),
+    (("fish", "seafood", "salmon", "tuna", "shrimp"), "fish"),
+    (("vegetable", "legume"), "vegetables"),
     (("fruit",), "fruit"),
-    (("bread", "bakery", "pastr"), "brood_bakkerij"),
-    (("sauce", "condiment", "spread", "spice", "herb"), "saus_kruiden"),
-    (("meal", "pizza", "ready-made"), "bereid_gerecht"),
+    (("bread", "bakery", "pastr"), "bread_bakery"),
+    (("sauce", "condiment", "spread", "spice", "herb"), "sauces_spices"),
+    (("meal", "pizza", "ready-made"), "prepared_dish"),
 ]
 
 
@@ -44,7 +44,7 @@ def _category_from_tags(tags: list[str] | None) -> str:
     for keys, category in _CATEGORY_KEYWORDS:
         if any(k in text for k in keys):
             return category
-    return "overig"
+    return DEFAULT_CATEGORY
 
 
 def normalize_barcode(value: Any) -> str:

@@ -251,10 +251,9 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     # 1) Location banner (inverted bar) --------------------------------------
     bar_h = 92
     d.rounded_rectangle([MX, y, LABEL_W - MX, y + bar_h], radius=20, fill=BLACK)
-    loc_key = str(item.get("location") or "").lower()
-    loc_compact = {"koelkast": "KOELKAST", "vriezer": "VRIEZER",
-                   "buiten": "BUITEN"}.get(
-        loc_key, (location_label.split()[0] if location_label else "").upper())
+    # Compact banner text: first word of the localized label, so
+    # "Buiten koelkast" -> "BUITEN" and "Fridge" -> "FRIDGE".
+    loc_compact = (location_label.split()[0] if location_label else "").upper()
     # Kind chip on the right — computed first so the location text can dodge it.
     chip_left = LABEL_W - MX - 22
     if kind_label:
@@ -408,7 +407,7 @@ if __name__ == "__main__":
         "code": "MV12",
         "name": "Macaroni met gehakt en groenten",
         "contents": "restje van zondag, dubbele portie",
-        "location": "vriezer",
+        "location": "freezer",
         "added_date": "2026-07-20",
         "expiry_date": "2026-09-20",
         "quantity": "2 bakjes",

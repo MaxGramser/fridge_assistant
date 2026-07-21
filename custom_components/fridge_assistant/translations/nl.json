@@ -37,17 +37,23 @@
   },
   "entity": {
     "sensor": {
-      "items_total": { "name": "Totaal items" },
-      "expiring_soon": { "name": "Bijna over datum" },
-      "expired": { "name": "Over datum" }
+      "items_total": {
+        "name": "Totaal items"
+      },
+      "expiring_soon": {
+        "name": "Bijna over datum"
+      },
+      "expired": {
+        "name": "Over datum"
+      }
     }
   },
   "selector": {
     "item_location": {
       "options": {
-        "koelkast": "Koelkast",
-        "vriezer": "Vriezer",
-        "buiten": "Buiten koelkast"
+        "fridge": "Koelkast",
+        "freezer": "Vriezer",
+        "pantry": "Buiten koelkast"
       }
     },
     "complete_action": {

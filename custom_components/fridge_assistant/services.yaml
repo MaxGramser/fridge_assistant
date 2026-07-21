@@ -12,9 +12,9 @@ add_item:
       selector:
         select:
           options:
-            - koelkast
-            - vriezer
-            - buiten
+            - fridge
+            - freezer
+            - pantry
           translation_key: item_location
     added_date:
       selector:

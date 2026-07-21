@@ -26,6 +26,7 @@ from .const import (
     EVENT_ITEM_COMPLETED,
     EVENT_ITEM_REMOVED,
     HISTORY_ACTIONS,
+    LEGACY_LOCATIONS,
     LOCATIONS,
     localized,
     resolve_language,
@@ -86,9 +87,9 @@ _SAMPLE_ITEM = {
     "code": "MV12",
     "name": "Macaroni met gehakt",
     "contents": "restje van zondag, dubbele portie",
-    "location": "vriezer",
-    "category": "bereid_gerecht",
-    "kind": "gerecht",
+    "location": "freezer",
+    "category": "prepared_dish",
+    "kind": "dish",
     "added_date": "2026-07-20",
     "expiry_date": "2026-09-20",
     "quantity": "2 bakjes",
@@ -107,7 +108,11 @@ ADD_ITEM_SCHEMA = vol.Schema(
     {
         vol.Optional("name"): cv.string,
         vol.Optional("contents"): cv.string,
-        vol.Optional("location", default=LOCATIONS[0]): vol.In(LOCATIONS),
+        # Legacy Dutch values stay accepted so old automations keep working;
+        # store.build_item canonicalises them to the English ones.
+        vol.Optional("location", default=LOCATIONS[0]): vol.In(
+            [*LOCATIONS, *LEGACY_LOCATIONS]
+        ),
         vol.Optional("category"): cv.string,
         vol.Optional("kind"): cv.string,
         vol.Optional("template_id"): cv.string,

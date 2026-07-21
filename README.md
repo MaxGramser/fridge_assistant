@@ -97,8 +97,8 @@ full undo. It works completely offline; AI estimates and the printer add-on are 
 
 ### Inventory model
 
-Every item lives in one of three **locations** — koelkast (fridge), vriezer (freezer), or buiten
-(pantry / outside the fridge) — and belongs to one of two **kinds**:
+Every item lives in one of three **locations** — `fridge`, `freezer`, or `pantry`
+(room-temperature storage) — and belongs to one of two **kinds**:
 
 - 🥕 **ingredient** — a single product (milk, lettuce, cheese, ...)
 - 🍲 **dish** — something prepared (leftovers, a home-cooked meal, ...)

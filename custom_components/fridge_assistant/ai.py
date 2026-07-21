@@ -16,13 +16,16 @@ from .const import (
     CONF_AI_AGENT,
     CONF_OPENAI_KEY,
     CONF_OPENAI_MODEL,
+    DEFAULT_CATEGORY,
     DEFAULT_EMOJI,
     DEFAULT_ICON,
     DEFAULT_KIND,
     DEFAULT_OPENAI_MODEL,
     KIND_DISH,
     KIND_INGREDIENT,
+    LEGACY_LOCATIONS,
     LOCATIONS,
+    canonical_category,
     localized,
     resolve_language,
 )
@@ -72,11 +75,21 @@ def _t(lang: str, key: str, **kwargs: Any) -> str:
 # Instructions are in English (most reliable for LLMs); only the free-text
 # "notes" tip is asked in the user's own language so it fits the UI.
 _SYSTEM_PROMPT = (
-    "You are a food-safety assistant for a household fridge/freezer inventory. "
-    "Given a product or dish, estimate how long it can be stored SAFELY, in whole "
-    "days, in three places: 'koelkast' (refrigerator), 'vriezer' (freezer) and "
-    "'buiten' (room temperature / pantry). Be conservative and food-safe. Use null "
-    "when a place is unsuitable (e.g. lettuce in the freezer). "
+    "You are a food-storage assistant for a household food inventory. "
+    "Given a product or dish, estimate how long it keeps, in whole days, in three "
+    "places: 'fridge' (refrigerator, ~4°C), 'freezer' (~-18°C) and 'pantry' "
+    "(kitchen cupboard at room temperature). "
+    "Be realistic and food-safe. Use null ONLY when a place is unsafe for the "
+    "product or genuinely pointless — never because it is merely 'not the best' "
+    "spot. Guidelines: shelf-stable goods (uncooked rice, dry pasta, flour, sugar, "
+    "canned food, unopened jars, oil, honey) belong in the pantry — give 'pantry' "
+    "their real long shelf life (often 365-730 days) and ALWAYS return null for "
+    "both 'fridge' and 'freezer' for them (cold storage adds nothing). "
+    "Perishables (raw meat, fish, dairy, cooked food) get conservative "
+    "fridge durations and usually null for 'pantry', but freezing keeps most of "
+    "them good for 30-365 days — only use null for the freezer when a product "
+    "does not survive freezing (e.g. lettuce, cucumber). Some produce (bananas, "
+    "onions, potatoes, whole bread) keeps fine at room temperature. "
     "Reply with ONLY valid JSON, no prose."
 )
 
@@ -84,9 +97,9 @@ _USER_TEMPLATE = (
     'Product: "{name}".\n'
     "Return exactly this JSON object:\n"
     "{{\n"
-    '  "koelkast": <integer days or null>,\n'
-    '  "vriezer": <integer days or null>,\n'
-    '  "buiten": <integer days or null>,\n'
+    '  "fridge": <integer days or null>,\n'
+    '  "freezer": <integer days or null>,\n'
+    '  "pantry": <integer days or null>,\n'
     '  "kind": "<ingredient for a single ingredient, or dish for a prepared meal>",\n'
     '  "category": "<one of: {categories}>",\n'
     '  "emoji": "<1 fitting food emoji>",\n'
@@ -162,15 +175,25 @@ def _coerce_days(value: Any) -> int | None:
     return min(num, 3650)
 
 
+# fridge -> koelkast, …: tolerate models that answer with the legacy Dutch
+# keys even though the prompt asks for the English ones.
+_LEGACY_LOCATION_ALIASES = {v: k for k, v in LEGACY_LOCATIONS.items()}
+
+
 def _normalize(name: str, parsed: dict[str, Any]) -> dict[str, Any]:
-    shelf = {loc: _coerce_days(parsed.get(loc)) for loc in LOCATIONS}
-    category = parsed.get("category")
+    shelf = {
+        loc: _coerce_days(
+            parsed.get(loc, parsed.get(_LEGACY_LOCATION_ALIASES.get(loc)))
+        )
+        for loc in LOCATIONS
+    }
+    category = canonical_category(parsed.get("category"))
     if category not in CATEGORIES:
-        category = "overig"
+        category = DEFAULT_CATEGORY
     kind_raw = str(parsed.get("kind") or "").strip().lower()
-    if kind_raw in (KIND_DISH, "dish", "meal", "prepared", "gerecht"):
+    if kind_raw in (KIND_DISH, "meal", "prepared", "gerecht"):
         kind = KIND_DISH
-    elif kind_raw in (KIND_INGREDIENT, "ingredient", "los"):
+    elif kind_raw in (KIND_INGREDIENT, "los"):
         kind = KIND_INGREDIENT
     else:
         kind = CATEGORY_KIND.get(category, DEFAULT_KIND)
