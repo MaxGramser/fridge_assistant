@@ -1,12 +1,445 @@
-/* Fridge Assistant panel — vanilla custom element, no external deps. */
+/* Fridge Assistant panel — vanilla custom element, no external deps.
+ *
+ * i18n: everything in this file follows a simple rule — Dutch if Home
+ * Assistant's (per-user) language is Dutch, English for anything else.
+ * See `_lang()`/`t()` below. Only nl/en exist; there is no third language.
+ */
 
-const MONTHS_NL = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+const MONTHS = {
+  nl: ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
+
+// Frontend-only translations of the backend's technical enum keys
+// (locations/categories/kinds). The backend still sends emoji/icon; only the
+// label text is overridden here, per the active language.
+const LOCATION_LABELS = {
+  nl: { koelkast: "Koelkast", vriezer: "Vriezer", buiten: "Buiten koelkast" },
+  en: { koelkast: "Fridge", vriezer: "Freezer", buiten: "Pantry" },
+};
+const CATEGORY_LABELS = {
+  nl: {
+    groente: "Groente", fruit: "Fruit", zuivel: "Zuivel", vlees: "Vlees", vis: "Vis",
+    bereid_gerecht: "Bereid gerecht", brood_bakkerij: "Brood & bakkerij",
+    saus_kruiden: "Saus & kruiden", dranken: "Dranken", eieren: "Eieren",
+    restjes: "Restjes", overig: "Overig",
+  },
+  en: {
+    groente: "Vegetables", fruit: "Fruit", zuivel: "Dairy", vlees: "Meat", vis: "Fish",
+    bereid_gerecht: "Prepared dish", brood_bakkerij: "Bakery",
+    saus_kruiden: "Sauces & spices", dranken: "Drinks", eieren: "Eggs",
+    restjes: "Leftovers", overig: "Other",
+  },
+};
+const KIND_LABELS = {
+  nl: {
+    ingredient: { label: "Losse ingrediënten", short: "Ingrediënten" },
+    gerecht: { label: "Gerechten", short: "Gerechten" },
+  },
+  en: {
+    ingredient: { label: "Individual ingredients", short: "Ingredients" },
+    gerecht: { label: "Dishes", short: "Dishes" },
+  },
+};
 
 const STATUS_COLOR = {
   expired: "var(--fa-red)",
   soon: "var(--fa-orange)",
   ok: "var(--fa-green)",
   none: "var(--fa-muted)",
+};
+
+/* ---------------------------------------------------------------- strings */
+const STRINGS = {
+  nl: {
+    appTitle: "Koelkast",
+    historyTooltip: (n) => (n ? `Geschiedenis (${n})` : "Geschiedenis"),
+    manageTemplates: "Templates beheren",
+    settings: "Instellingen",
+    searchPlaceholder: "Zoek…",
+    cleanUp: "Opruimen",
+    loading: "Laden…",
+    scanAria: "Scan barcode",
+    addItemAria: "Item toevoegen",
+
+    itemsUnit: "items",
+    soonUnit: "bijna op",
+    expiredUnit: "over datum",
+    all: "Alles",
+
+    emptyTitle: "Nog niets in de koelkast",
+    emptySub: "Voeg je eerste item toe — houdbaarheid wordt automatisch geschat.",
+    addItemBtn: "＋ Item toevoegen",
+    useFirst: "⏰ Als eerste op",
+    nothingFound: "Niets gevonden.",
+    printSticker: "Print sticker",
+
+    addNamePlaceholder: "Wat leg je erin? bv. krop sla",
+    dateInFieldLabel: "Datum erin",
+    expiryLabel: "Houdbaar tot",
+    moreOptions: "Meer opties ▾",
+    lessOptions: "Minder opties ▴",
+    displayNameLabel: "Aparte naam (optioneel)",
+    displayNamePlaceholder: "Weergavenaam",
+    quantityLabel: "Hoeveelheid",
+    quantityPlaceholder: "bv. 2 bakjes",
+    emojiLabel: "Emoji",
+    notesLabel: "Notitie",
+    photoUrlLabel: "Foto-URL (optioneel)",
+    photoUrlPlaceholder: "https://…",
+    chooseTemplateBtn: "📚 Template kiezen",
+    saveBtn: "Opslaan",
+    addBtn: "Toevoegen",
+    aiEstimateMini: "✨ AI schat",
+    unknownProduct: "Onbekend product",
+    noTemplateFor: (q, aiEnabled) =>
+      `Nog geen template voor "${q}" — vul zelf een datum in${aiEnabled ? " of laat AI schatten" : ""}.`,
+    chooseTemplateTitle: "Kies template",
+    notSuitableHere: "Niet geschikt voor deze locatie",
+    daysAtLocation: (label, days) => `${label}: ${days} dagen`,
+    aiEstimateTitle: "AI-schatting",
+    otherTemplateTitle: "Andere template",
+    notThisManualTitle: "Niet dit — handmatig",
+    manualEntry: "Handmatig invullen",
+    savedToast: "Opgeslagen ✓",
+    addedToast: (code) => `Toegevoegd ✓ ${code ? "code " + code : ""}`,
+    printActionLabel: "🏷️ Print",
+    errorPrefix: "Fout: ",
+
+    aiThinking: "✨ AI denkt na…",
+    estimatingFor: (name) => `Houdbaarheid van "${name}" schatten…`,
+    aiFailed: "AI-schatting mislukt",
+    dayUnitShort: "dg",
+    aiHint: "Klopt niet helemaal? Tik een dag-getal aan en pas het aan 👇",
+    saveAsTemplateLabel: "Bewaar (met jouw aanpassingen) als template",
+
+    pickTemplateTitle: "📚 Kies een template",
+    searchInTemplates: (n) => `Zoek in ${n} templates…`,
+    ownSuffix: " · eigen",
+
+    templatesTitle: "📚 Templates",
+    templateWithAiTitle: "Template met AI",
+    newTemplateTitleIcon: "Nieuwe template",
+    hiddenTemplatesTitle: "Verborgen standaard-templates",
+    searchOrFilterPlaceholder: "Zoek of filter…",
+    nothingHidden: "Niets verborgen.",
+    backBtn: "↩︎ Terug",
+    restoredToast: "Teruggezet ✓",
+    nothingInGroup: "Niets in deze groep.",
+    customizedBadge: "aangepast",
+    ownBadge: "eigen",
+
+    templateWithAiSub: "Typ een product; AI schat de houdbaarheid, jij past aan.",
+    productOrDishLabel: "Product of gerecht",
+    productOrDishPlaceholder: "bv. zelfgemaakte curry",
+    estimateWithAiBtn: "✨ Schat met AI",
+    aiErrorPrefix: "AI: ",
+
+    newTemplateHeading: "Nieuwe template",
+    editTemplateHeading: "Template bewerken",
+    overrideNote: "Aanpassing van standaard-template",
+    builtinNote: "Standaard-template — wijziging maakt een eigen versie",
+    ownTemplateNote: "Eigen template",
+    nameLabel: "Naam",
+    namePlaceholderTemplate: "bv. Zelfgemaakte pesto",
+    kindLabel: "Soort",
+    categoryLabel: "Categorie",
+    shelfLifeSectionLabel: "Houdbaarheid in dagen — leeg = niet geschikt",
+    notApplicablePlaceholder: "n.v.t.",
+    aliasesLabel: "Ook herkennen als (komma-gescheiden)",
+    aliasesPlaceholder: "pasta bolognese, spaghetti",
+    notesTipLabel: "Notitie / bewaartip",
+    notesTipPlaceholder: "Laat afkoelen voor invriezen",
+    restoreDefaultBtn: "↺ Herstel",
+    builtinRemoveBtn: "🙈 Verwijder",
+    customRemoveBtn: "🗑 Verwijder",
+    templateAddedToast: "Template toegevoegd ✓",
+    templateSavedToast: "Template opgeslagen ✓",
+    restoredDefaultToast: "Hersteld naar standaard ✓",
+    removedFromListToast: "Uit lijst gehaald ✓",
+    templateDeletedToast: "Template verwijderd ✓",
+
+    locationLabel: "Locatie",
+    addedByLabel: "Toegevoegd door",
+    contentsLabel: "Inhoud",
+    dateInDetailLabel: "Erin gelegd",
+    daysAgoShort: (n) => `${n} dg geleden`,
+    stickerBtn: "🏷️ Sticker",
+    editBtn: "✏️ Bewerken",
+    eatenBtn: "🍽️ Opgegeten",
+    tossedBtn: "🗑️ Weggegooid",
+
+    undoLabel: "Ongedaan",
+    completedToast: (emoji, name, eaten) => `${emoji} ${name} ${eaten ? "opgegeten" : "weggegooid"}`,
+
+    notOwnLabel: (val) => `Dit is geen eigen koelkast-label (${val})`,
+    noActiveItemWithCode: (val) => `Geen actief item met code ${val}`,
+    couldNotEatRetry: "Kon niet opeten — probeer opnieuw",
+    eatenStatusCount: (name, n) => `🍽️ ${name} opgegeten (${n})`,
+
+    cleanUpTitle: "🧹 Koelkast opruimen",
+    expiredSection: "Over datum",
+    soonSection: "Bijna over datum",
+    allGoodMessage: "Alles is nog goed!",
+    removeSelectedBtn: "Verwijder geselecteerde",
+    removeNItems: (n) => `Verwijder ${n} item${n === 1 ? "" : "s"}`,
+    nothingSelected: "Niets geselecteerd",
+    cleanedUpToast: (n) => `🧹 ${n} item${n === 1 ? "" : "s"} opgeruimd`,
+
+    scanTitle: "📷 Scan",
+    scanSub: "Je koelkast-label om te zoeken, of een winkelbarcode",
+    searchModeBtn: "🔎 Zoeken",
+    eatModeBtn: "🍽️ Opeten",
+    photoBtn: "📸 Foto",
+    typeCodeBtn: "⌨️ Code typen",
+    eatModeStatus: "🍽️ Scan je labels — elk item wordt meteen opgegeten",
+    aimAtBarcode: "Richt op de barcode…",
+    codeInputPlaceholder: "Code, bv. AB12",
+    searchBtn: "Zoek",
+    readingPhoto: "Foto lezen…",
+    noBarcodeFound: "Geen barcode gevonden — probeer dichterbij en scherp.",
+    takePhotoOfBarcode: "Maak een foto van de barcode 📸",
+    liveScanUnavailable: "Live scannen kan niet op dit toestel. Typ de code ⌨️.",
+    noCameraAccess: "Geen camera-toegang. Gebruik 📸 Foto of ⌨️ Code.",
+
+    foundToast: (name) => `🔎 ${name} gevonden`,
+    noActiveItemHistoryHint: (val) => `Geen actief item met code ${val} — misschien al opgegeten/weggegooid (📜)`,
+    unknownCode: (val) => `Onbekende code: ${val}`,
+
+    lookingUpProduct: (code) => `🔎 Product opzoeken… (${code})`,
+    retailBarcodeNote: (code) => `Winkelbarcode ${code}`,
+    noProductNameFound: (code) => `Geen productnaam gevonden (${code}) — vul zelf in`,
+    recognizedBefore: "🔁 Eerder toegevoegd — herkend",
+    productFoundToast: (name) => `🛒 ${name}`,
+
+    justNow: "net",
+    minutesAgo: (m) => `${m} min geleden`,
+    hoursAgo: (h) => `${h} uur geleden`,
+    yesterday: "gisteren",
+    daysAgo: (d) => `${d} dagen geleden`,
+
+    restoreToFridgeTitle: "Terugzetten in de koelkast",
+    historyHeading: "📜 Geschiedenis",
+    loadMoreBtn: "Meer laden",
+    historyLoadFailed: "Kon geschiedenis niet laden.",
+    historyEmpty: "Nog niets opgegeten of weggegooid.",
+    historySummary: (total) => `${total} afgerond${total >= 500 ? " (laatste 500)" : ""}`,
+    restoreFailedToast: "Herstellen mislukt",
+    restoredToFridgeToast: "↩︎ Teruggezet in de koelkast",
+
+    printerOnNote: (label, size, copies) =>
+      `Label <b>${label}</b> (${size}, getest) · printer automatisch gedetecteerd. Print ${copies}× per keer.`,
+    printerOffNote: (label, size) =>
+      `Label <b>${label}</b> (${size}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij ⚙️ instellingen.`,
+    printStickerModalTitle: "🏷️ Sticker printen",
+    previewLoading: "Voorbeeld laden…",
+    closeBtn: "Sluiten",
+    printBtnLabel: (copies) => `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`,
+    previewUnavailable: (err) => `Voorbeeld niet beschikbaar: ${err}`,
+    workingLabel: "Bezig…",
+    stickerPrintedToast: (code, copies) => `🖨️ Sticker ${code} geprint${copies > 1 ? ` (${copies}×)` : ""}`,
+    printerDisabledReason: "Printer staat uit — zet 'm aan bij ⚙️ instellingen.",
+    printerUnreachableReason: "Label Printer add-on niet bereikbaar. Staat de add-on aan?",
+    printerNotConnectedReason: "De DYMO is niet gevonden. Check kabel/stroom en herstart de add-on.",
+    renderFailedReason: "Label renderen mislukte.",
+    genericPrintFailed: (reason) => `Printen mislukte (${reason || "?"})`,
+    printFailedError: (err) => `Print mislukt: ${err}`,
+  },
+
+  en: {
+    appTitle: "Fridge",
+    historyTooltip: (n) => (n ? `History (${n})` : "History"),
+    manageTemplates: "Manage templates",
+    settings: "Settings",
+    searchPlaceholder: "Search…",
+    cleanUp: "Clean up",
+    loading: "Loading…",
+    scanAria: "Scan barcode",
+    addItemAria: "Add item",
+
+    itemsUnit: "items",
+    soonUnit: "soon",
+    expiredUnit: "expired",
+    all: "All",
+
+    emptyTitle: "Nothing in the fridge yet",
+    emptySub: "Add your first item — expiry is estimated automatically.",
+    addItemBtn: "＋ Add item",
+    useFirst: "⏰ Use first",
+    nothingFound: "Nothing found.",
+    printSticker: "Print sticker",
+
+    addNamePlaceholder: "What are you putting in? e.g. lettuce",
+    dateInFieldLabel: "Date added",
+    expiryLabel: "Use by",
+    moreOptions: "More options ▾",
+    lessOptions: "Fewer options ▴",
+    displayNameLabel: "Custom name (optional)",
+    displayNamePlaceholder: "Display name",
+    quantityLabel: "Quantity",
+    quantityPlaceholder: "e.g. 2 containers",
+    emojiLabel: "Emoji",
+    notesLabel: "Note",
+    photoUrlLabel: "Photo URL (optional)",
+    photoUrlPlaceholder: "https://…",
+    chooseTemplateBtn: "📚 Choose template",
+    saveBtn: "Save",
+    addBtn: "Add",
+    aiEstimateMini: "✨ AI estimate",
+    unknownProduct: "Unknown product",
+    noTemplateFor: (q, aiEnabled) =>
+      `No template yet for "${q}" — enter a date yourself${aiEnabled ? " or let AI estimate" : ""}.`,
+    chooseTemplateTitle: "Choose template",
+    notSuitableHere: "Not suitable for this location",
+    daysAtLocation: (label, days) => `${label}: ${days} days`,
+    aiEstimateTitle: "AI estimate",
+    otherTemplateTitle: "Different template",
+    notThisManualTitle: "Not this — manual",
+    manualEntry: "Manual entry",
+    savedToast: "Saved ✓",
+    addedToast: (code) => `Added ✓ ${code ? "code " + code : ""}`,
+    printActionLabel: "🏷️ Print",
+    errorPrefix: "Error: ",
+
+    aiThinking: "✨ AI is thinking…",
+    estimatingFor: (name) => `Estimating shelf life for "${name}"…`,
+    aiFailed: "AI estimate failed",
+    dayUnitShort: "d",
+    aiHint: "Not quite right? Tap a day count to adjust it 👇",
+    saveAsTemplateLabel: "Save (with your edits) as a template",
+
+    pickTemplateTitle: "📚 Choose a template",
+    searchInTemplates: (n) => `Search ${n} templates…`,
+    ownSuffix: " · custom",
+
+    templatesTitle: "📚 Templates",
+    templateWithAiTitle: "Template with AI",
+    newTemplateTitleIcon: "New template",
+    hiddenTemplatesTitle: "Hidden built-in templates",
+    searchOrFilterPlaceholder: "Search or filter…",
+    nothingHidden: "Nothing hidden.",
+    backBtn: "↩︎ Back",
+    restoredToast: "Restored ✓",
+    nothingInGroup: "Nothing in this group.",
+    customizedBadge: "customized",
+    ownBadge: "custom",
+
+    templateWithAiSub: "Type a product; AI estimates shelf life, you adjust it.",
+    productOrDishLabel: "Product or dish",
+    productOrDishPlaceholder: "e.g. homemade curry",
+    estimateWithAiBtn: "✨ Estimate with AI",
+    aiErrorPrefix: "AI: ",
+
+    newTemplateHeading: "New template",
+    editTemplateHeading: "Edit template",
+    overrideNote: "Customization of a built-in template",
+    builtinNote: "Built-in template — editing creates your own version",
+    ownTemplateNote: "Your own template",
+    nameLabel: "Name",
+    namePlaceholderTemplate: "e.g. Homemade pesto",
+    kindLabel: "Kind",
+    categoryLabel: "Category",
+    shelfLifeSectionLabel: "Shelf life in days — empty = not suitable",
+    notApplicablePlaceholder: "n/a",
+    aliasesLabel: "Also recognize as (comma-separated)",
+    aliasesPlaceholder: "pasta bolognese, spaghetti",
+    notesTipLabel: "Note / storage tip",
+    notesTipPlaceholder: "Let cool before freezing",
+    restoreDefaultBtn: "↺ Restore",
+    builtinRemoveBtn: "🙈 Remove",
+    customRemoveBtn: "🗑 Remove",
+    templateAddedToast: "Template added ✓",
+    templateSavedToast: "Template saved ✓",
+    restoredDefaultToast: "Restored to default ✓",
+    removedFromListToast: "Removed from list ✓",
+    templateDeletedToast: "Template deleted ✓",
+
+    locationLabel: "Location",
+    addedByLabel: "Added by",
+    contentsLabel: "Contents",
+    dateInDetailLabel: "Added on",
+    daysAgoShort: (n) => `${n}d ago`,
+    stickerBtn: "🏷️ Sticker",
+    editBtn: "✏️ Edit",
+    eatenBtn: "🍽️ Eaten",
+    tossedBtn: "🗑️ Tossed",
+
+    undoLabel: "Undo",
+    completedToast: (emoji, name, eaten) => `${emoji} ${name} ${eaten ? "eaten" : "tossed"}`,
+
+    notOwnLabel: (val) => `This isn't one of your own fridge labels (${val})`,
+    noActiveItemWithCode: (val) => `No active item with code ${val}`,
+    couldNotEatRetry: "Couldn't mark as eaten — try again",
+    eatenStatusCount: (name, n) => `🍽️ ${name} eaten (${n})`,
+
+    cleanUpTitle: "🧹 Clean up the fridge",
+    expiredSection: "Past date",
+    soonSection: "Expiring soon",
+    allGoodMessage: "Everything is still good!",
+    removeSelectedBtn: "Remove selected",
+    removeNItems: (n) => `Remove ${n} item${n === 1 ? "" : "s"}`,
+    nothingSelected: "Nothing selected",
+    cleanedUpToast: (n) => `🧹 ${n} item${n === 1 ? "" : "s"} cleaned up`,
+
+    scanTitle: "📷 Scan",
+    scanSub: "Your fridge label to search, or a retail barcode",
+    searchModeBtn: "🔎 Search",
+    eatModeBtn: "🍽️ Eat",
+    photoBtn: "📸 Photo",
+    typeCodeBtn: "⌨️ Type code",
+    eatModeStatus: "🍽️ Scan your labels — each item is marked eaten right away",
+    aimAtBarcode: "Point at the barcode…",
+    codeInputPlaceholder: "Code, e.g. AB12",
+    searchBtn: "Search",
+    readingPhoto: "Reading photo…",
+    noBarcodeFound: "No barcode found — try closer and in focus.",
+    takePhotoOfBarcode: "Take a photo of the barcode 📸",
+    liveScanUnavailable: "Live scanning isn't available on this device. Type the code ⌨️.",
+    noCameraAccess: "No camera access. Use 📸 Photo or ⌨️ Code.",
+
+    foundToast: (name) => `🔎 ${name} found`,
+    noActiveItemHistoryHint: (val) => `No active item with code ${val} — maybe already eaten/tossed (📜)`,
+    unknownCode: (val) => `Unknown code: ${val}`,
+
+    lookingUpProduct: (code) => `🔎 Looking up product… (${code})`,
+    retailBarcodeNote: (code) => `Retail barcode ${code}`,
+    noProductNameFound: (code) => `No product name found (${code}) — fill it in yourself`,
+    recognizedBefore: "🔁 Added before — recognized",
+    productFoundToast: (name) => `🛒 ${name}`,
+
+    justNow: "just now",
+    minutesAgo: (m) => `${m} min ago`,
+    hoursAgo: (h) => `${h} hour${h === 1 ? "" : "s"} ago`,
+    yesterday: "yesterday",
+    daysAgo: (d) => `${d} days ago`,
+
+    restoreToFridgeTitle: "Put back in the fridge",
+    historyHeading: "📜 History",
+    loadMoreBtn: "Load more",
+    historyLoadFailed: "Couldn't load history.",
+    historyEmpty: "Nothing eaten or tossed yet.",
+    historySummary: (total) => `${total} completed${total >= 500 ? " (last 500)" : ""}`,
+    restoreFailedToast: "Restore failed",
+    restoredToFridgeToast: "↩︎ Put back in the fridge",
+
+    printerOnNote: (label, size, copies) =>
+      `Label <b>${label}</b> (${size}, tested) · printer detected automatically. Prints ${copies}× per tap.`,
+    printerOffNote: (label, size) =>
+      `Label <b>${label}</b> (${size}).<br>The printer is off — install the <b>Label Printer</b> add-on and enable it in ⚙️ settings.`,
+    printStickerModalTitle: "🏷️ Print sticker",
+    previewLoading: "Loading preview…",
+    closeBtn: "Close",
+    printBtnLabel: (copies) => `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`,
+    previewUnavailable: (err) => `Preview unavailable: ${err}`,
+    workingLabel: "Working…",
+    stickerPrintedToast: (code, copies) => `🖨️ Sticker ${code} printed${copies > 1 ? ` (${copies}×)` : ""}`,
+    printerDisabledReason: "Printer is off — enable it in ⚙️ settings.",
+    printerUnreachableReason: "Label Printer add-on unreachable. Is the add-on running?",
+    printerNotConnectedReason: "The DYMO wasn't found. Check cable/power and restart the add-on.",
+    renderFailedReason: "Rendering the label failed.",
+    genericPrintFailed: (reason) => `Printing failed (${reason || "?"})`,
+    printFailedError: (err) => `Print failed: ${err}`,
+  },
 };
 
 /* ---------- small date helpers (timezone-safe, YYYY-MM-DD) ---------- */
@@ -33,17 +466,23 @@ function daysBetween(fromISO, toISOv) {
   if (!a || !b) return null;
   return Math.round((b - a) / 86400000);
 }
-function fmtDate(iso) {
+function fmtDate(iso, lang) {
   const dt = parseISO(iso);
   if (!dt) return "—";
-  return `${dt.getUTCDate()} ${MONTHS_NL[dt.getUTCMonth()]}`;
+  return `${dt.getUTCDate()} ${MONTHS[lang][dt.getUTCMonth()]}`;
 }
-function daysLabel(daysLeft) {
-  if (daysLeft === null || daysLeft === undefined) return "geen datum";
-  if (daysLeft < 0) return `${Math.abs(daysLeft)} dag${Math.abs(daysLeft) === 1 ? "" : "en"} over datum`;
-  if (daysLeft === 0) return "vandaag!";
-  if (daysLeft === 1) return "nog 1 dag";
-  return `nog ${daysLeft} dagen`;
+function daysLabel(daysLeft, lang) {
+  const s = STRINGS[lang];
+  if (daysLeft === null || daysLeft === undefined) return lang === "nl" ? "geen datum" : "no date";
+  if (daysLeft < 0) {
+    const abs = Math.abs(daysLeft);
+    return lang === "nl"
+      ? `${abs} dag${abs === 1 ? "" : "en"} over datum`
+      : `${abs} day${abs === 1 ? "" : "s"} past date`;
+  }
+  if (daysLeft === 0) return lang === "nl" ? "vandaag!" : "today!";
+  if (daysLeft === 1) return lang === "nl" ? "nog 1 dag" : "1 day left";
+  return lang === "nl" ? `nog ${daysLeft} dagen` : `${daysLeft} days left`;
 }
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -87,6 +526,41 @@ class FridgeAssistantPanel extends HTMLElement {
     if (this._unsub) { try { this._unsub(); } catch (e) {} this._unsub = null; }
   }
 
+  /* ------------------------------------------------------------------ i18n */
+  // "nl" only if Home Assistant's (per-user) language is Dutch; English for
+  // everything else, including no language at all. Mirrors the backend's
+  // resolve_language() so printed labels/notifications match the panel.
+  _lang() {
+    const raw = (this._hass && this._hass.language) || "en";
+    return String(raw).split("-")[0].toLowerCase() === "nl" ? "nl" : "en";
+  }
+
+  t(key, ...args) {
+    const table = STRINGS[this._lang()] || STRINGS.en;
+    const v = (key in table ? table[key] : STRINGS.en[key]);
+    return typeof v === "function" ? v(...args) : v;
+  }
+
+  // Backend sends location_meta/categories/kinds with Dutch labels (plus
+  // emoji/icon, which aren't translated); these merge in the frontend label
+  // for the active language while keeping the rest of the backend object.
+  _locMeta(key) {
+    const base = (this._state && this._state.location_meta || {})[key] || {};
+    const table = LOCATION_LABELS[this._lang()] || LOCATION_LABELS.en;
+    return { ...base, label: table[key] || base.label || key };
+  }
+  _catMeta(key) {
+    const base = (this._state && this._state.categories || {})[key] || {};
+    const table = CATEGORY_LABELS[this._lang()] || CATEGORY_LABELS.en;
+    return { ...base, label: table[key] || base.label || key };
+  }
+  _kindMeta(key) {
+    const base = (this._state && this._state.kinds || {})[key] || {};
+    const table = (KIND_LABELS[this._lang()] || KIND_LABELS.en)[key] || {};
+    const label = table.label || base.label || key;
+    return { ...base, label, short: table.short || base.short || label };
+  }
+
   async _subscribe() {
     try {
       this._unsub = await this._hass.connection.subscribeMessage(
@@ -127,23 +601,23 @@ class FridgeAssistantPanel extends HTMLElement {
         <header class="topbar">
           <div class="topbar-row">
             <span class="menu-slot" id="menu-slot"></span>
-            <div class="brand"><span class="brand-emoji">🧊</span><h1>Koelkast</h1></div>
+            <div class="brand"><span class="brand-emoji">🧊</span><h1>${this.t("appTitle")}</h1></div>
             <span class="spacer"></span>
-            <button class="icon-btn" id="btn-history" title="Geschiedenis">📜</button>
-            <button class="icon-btn" id="btn-templates" title="Templates beheren">📚</button>
-            <button class="icon-btn" id="btn-settings" title="Instellingen">⚙︎</button>
+            <button class="icon-btn" id="btn-history" title="${this.t("historyTooltip", 0)}">📜</button>
+            <button class="icon-btn" id="btn-templates" title="${this.t("manageTemplates")}">📚</button>
+            <button class="icon-btn" id="btn-settings" title="${this.t("settings")}">⚙︎</button>
           </div>
           <div class="counts" id="counts"></div>
           <div class="searchrow">
-            <div class="search"><span>🔍</span><input id="search" placeholder="Zoek…" autocomplete="off" enterkeyhint="search"></div>
-            <button class="btn ghost icon-only" id="btn-clean" title="Opruimen">🧹</button>
+            <div class="search"><span>🔍</span><input id="search" placeholder="${this.t("searchPlaceholder")}" autocomplete="off" enterkeyhint="search"></div>
+            <button class="btn ghost icon-only" id="btn-clean" title="${this.t("cleanUp")}">🧹</button>
           </div>
         </header>
         <nav class="filters" id="filters"></nav>
-        <main id="list"><div class="loading">Laden…</div></main>
+        <main id="list"><div class="loading">${this.t("loading")}</div></main>
       </div>
-      <button class="fab fab-scan" id="fab-scan" aria-label="Scan barcode">📷</button>
-      <button class="fab" id="fab-add" aria-label="Item toevoegen">＋</button>
+      <button class="fab fab-scan" id="fab-scan" aria-label="${this.t("scanAria")}">📷</button>
+      <button class="fab" id="fab-add" aria-label="${this.t("addItemAria")}">＋</button>
       <div id="modal-root"></div>
       <div id="toast-root"></div>
     `;
@@ -176,8 +650,7 @@ class FridgeAssistantPanel extends HTMLElement {
 
   _onState() {
     const hb = this.shadowRoot.getElementById("btn-history");
-    if (hb) hb.title = this._state.history_count
-      ? `Geschiedenis (${this._state.history_count})` : "Geschiedenis";
+    if (hb) hb.title = this.t("historyTooltip", this._state.history_count || 0);
     this._renderCounts();
     this._renderFilters();
     this._renderList();
@@ -187,20 +660,20 @@ class FridgeAssistantPanel extends HTMLElement {
     const c = this._state.counts;
     const el = this.shadowRoot.getElementById("counts");
     el.innerHTML = `
-      <span class="pill"><b>${c.total}</b> items</span>
-      ${c.soon ? `<span class="pill warn"><b>${c.soon}</b> bijna op</span>` : ""}
-      ${c.expired ? `<span class="pill bad"><b>${c.expired}</b> over datum</span>` : ""}
+      <span class="pill"><b>${c.total}</b> ${this.t("itemsUnit")}</span>
+      ${c.soon ? `<span class="pill warn"><b>${c.soon}</b> ${this.t("soonUnit")}</span>` : ""}
+      ${c.expired ? `<span class="pill bad"><b>${c.expired}</b> ${this.t("expiredUnit")}</span>` : ""}
     `;
   }
 
   _renderFilters() {
-    const { locations, location_meta, counts } = this._state;
+    const { locations, counts } = this._state;
     const el = this.shadowRoot.getElementById("filters");
     const chip = (key, label, count) =>
       `<button class="chip ${this._filterLoc === key ? "active" : ""}" data-loc="${key}">${label} <span class="chip-n">${count}</span></button>`;
-    let html = chip("all", "Alles", counts.total);
+    let html = chip("all", this.t("all"), counts.total);
     for (const loc of locations) {
-      const m = location_meta[loc] || {};
+      const m = this._locMeta(loc);
       html += chip(loc, `${m.emoji || ""} ${m.label || loc}`, counts.by_location[loc] || 0);
     }
     el.innerHTML = html;
@@ -225,13 +698,14 @@ class FridgeAssistantPanel extends HTMLElement {
     if (!this._state) return;
     const list = this.shadowRoot.getElementById("list");
     const items = this._filteredItems();
+    const lang = this._lang();
 
     if (this._state.counts.total === 0) {
       list.innerHTML = `<div class="empty">
         <div class="empty-emoji">🧊</div>
-        <h2>Nog niets in de koelkast</h2>
-        <p>Voeg je eerste item toe — houdbaarheid wordt automatisch geschat.</p>
-        <button class="btn primary" id="empty-add">＋ Item toevoegen</button>
+        <h2>${this.t("emptyTitle")}</h2>
+        <p>${this.t("emptySub")}</p>
+        <button class="btn primary" id="empty-add">${this.t("addItemBtn")}</button>
       </div>`;
       list.querySelector("#empty-add").addEventListener("click", () => this._openAddModal());
       return;
@@ -246,18 +720,18 @@ class FridgeAssistantPanel extends HTMLElement {
       const groups = order
         .map((k) => [k, urgent.filter((i) => this._kindOf(i) === k)])
         .filter(([, arr]) => arr.length);
-      html += `<section class="strip"><div class="strip-head">⏰ Als eerste op</div>
+      html += `<section class="strip"><div class="strip-head">${this.t("useFirst")}</div>
         ${groups.map(([k, arr]) => `<div class="strip-group">
-          <div class="strip-sub">${(kinds[k] || {}).emoji || ""} ${(kinds[k] || {}).short || (kinds[k] || {}).label || k}</div>
-          <div class="strip-row">${arr.slice(0, 12).map((i) => this._urgentCard(i)).join("")}</div>
+          <div class="strip-sub">${this._kindMeta(k).emoji || ""} ${this._kindMeta(k).short}</div>
+          <div class="strip-row">${arr.slice(0, 12).map((i) => this._urgentCard(i, lang)).join("")}</div>
         </div>`).join("")}
       </section>`;
     }
 
     if (!items.length) {
-      html += `<div class="empty small"><p>Niets gevonden.</p></div>`;
+      html += `<div class="empty small"><p>${this.t("nothingFound")}</p></div>`;
     } else {
-      html += `<div class="cards">${items.map((i) => this._itemCard(i)).join("")}</div>`;
+      html += `<div class="cards">${items.map((i) => this._itemCard(i, lang)).join("")}</div>`;
     }
     list.innerHTML = html;
 
@@ -273,16 +747,16 @@ class FridgeAssistantPanel extends HTMLElement {
     );
   }
 
-  _urgentCard(i) {
+  _urgentCard(i, lang) {
     return `<div class="ucard" data-item="${i.id}" style="--c:${STATUS_COLOR[i.status]}">
       <div class="ucard-emoji">${i.emoji || "🍽️"}</div>
       <div class="ucard-name">${esc(i.name)}</div>
-      <div class="ucard-days">${daysLabel(i.days_left)}</div>
+      <div class="ucard-days">${daysLabel(i.days_left, lang)}</div>
     </div>`;
   }
 
-  _itemCard(i) {
-    const lm = this._state.location_meta[i.location] || {};
+  _itemCard(i, lang) {
+    const lm = this._locMeta(i.location);
     return `<div class="card" data-item="${i.id}">
       <div class="card-emoji">${i.emoji || "🍽️"}</div>
       <div class="card-main">
@@ -295,10 +769,10 @@ class FridgeAssistantPanel extends HTMLElement {
         </div>
       </div>
       <div class="card-right">
-        <div class="status" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left)}</div>
-        <div class="card-when">${i.expiry_date ? fmtDate(i.expiry_date) : ""}</div>
+        <div class="status" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left, lang)}</div>
+        <div class="card-when">${i.expiry_date ? fmtDate(i.expiry_date, lang) : ""}</div>
       </div>
-      <button class="card-print icon-btn" data-print="${i.id}" title="Print sticker">🏷️</button>
+      <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}">🏷️</button>
     </div>`;
   }
 
@@ -336,49 +810,49 @@ class FridgeAssistantPanel extends HTMLElement {
       aiResult: null,
     };
     const locs = this._state.locations;
-    const lm = this._state.location_meta;
-    const kinds = this._state.kinds || { ingredient: { emoji: "🥕", short: "Ingrediënt" }, gerecht: { emoji: "🍲", short: "Gerecht" } };
+    const kinds = this._state.kinds || { ingredient: {}, gerecht: {} };
     const nameVal = editItem ? editItem.name : (prefill.name || "");
 
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-emoji" id="m-emoji">${m.emoji}</div>
         <div class="m-title">
-          <input class="m-name" id="f-name" placeholder="Wat leg je erin? bv. krop sla" value="${esc(nameVal)}">
+          <input class="m-name" id="f-name" placeholder="${this.t("addNamePlaceholder")}" value="${esc(nameVal)}">
         </div>
         <button class="icon-btn" id="m-close">✕</button>
       </div>
       <div class="suggest" id="f-suggest"></div>
       <div class="seg" id="f-loc">
-        ${locs.map((l) => `<button data-loc="${l}" class="${m.location === l ? "on" : ""}">${lm[l].emoji} ${lm[l].label}</button>`).join("")}
+        ${locs.map((l) => { const lm = this._locMeta(l); return `<button data-loc="${l}" class="${m.location === l ? "on" : ""}">${lm.emoji} ${lm.label}</button>`; }).join("")}
       </div>
       <div class="seg" id="f-kind">
-        ${Object.keys(kinds).map((k) => `<button type="button" data-kind="${k}" class="${m.kind === k ? "on" : ""}">${kinds[k].emoji} ${kinds[k].short || kinds[k].label}</button>`).join("")}
+        ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button type="button" data-kind="${k}" class="${m.kind === k ? "on" : ""}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
       </div>
       <div class="grid2">
-        <label class="field"><span>Datum erin</span><input type="date" id="f-added" value="${m.added}"></label>
-        <label class="field"><span>Houdbaar tot</span><input type="date" id="f-expiry" value="${m.expiry}"></label>
+        <label class="field"><span>${this.t("dateInFieldLabel")}</span><input type="date" id="f-added" value="${m.added}"></label>
+        <label class="field"><span>${this.t("expiryLabel")}</span><input type="date" id="f-expiry" value="${m.expiry}"></label>
       </div>
       <div class="expiry-hint" id="f-hint"></div>
-      <button class="link" id="f-adv">Meer opties ▾</button>
+      <button class="link" id="f-adv">${this.t("moreOptions")}</button>
       <div class="adv hidden" id="f-advbox">
-        <label class="field"><span>Aparte naam (optioneel)</span><input id="f-dispname" placeholder="Weergavenaam" value="${esc(editItem?.name || "")}"></label>
+        <label class="field"><span>${this.t("displayNameLabel")}</span><input id="f-dispname" placeholder="${this.t("displayNamePlaceholder")}" value="${esc(editItem?.name || "")}"></label>
         <div class="grid2">
-          <label class="field"><span>Hoeveelheid</span><input id="f-qty" placeholder="bv. 2 bakjes" value="${esc(editItem?.quantity ?? prefill.quantity ?? "")}"></label>
-          <label class="field"><span>Emoji</span><input id="f-emojiin" maxlength="4" value="${esc(m.emoji)}"></label>
+          <label class="field"><span>${this.t("quantityLabel")}</span><input id="f-qty" placeholder="${this.t("quantityPlaceholder")}" value="${esc(editItem?.quantity ?? prefill.quantity ?? "")}"></label>
+          <label class="field"><span>${this.t("emojiLabel")}</span><input id="f-emojiin" maxlength="4" value="${esc(m.emoji)}"></label>
         </div>
-        <label class="field"><span>Notitie</span><input id="f-notes" placeholder="Notitie" value="${esc(editItem?.notes ?? prefill.notes ?? "")}"></label>
-        <label class="field"><span>Foto-URL (optioneel)</span><input id="f-photo" placeholder="https://…" value="${esc(editItem?.photo ?? prefill.photo ?? "")}"></label>
+        <label class="field"><span>${this.t("notesLabel")}</span><input id="f-notes" placeholder="${this.t("notesLabel")}" value="${esc(editItem?.notes ?? prefill.notes ?? "")}"></label>
+        <label class="field"><span>${this.t("photoUrlLabel")}</span><input id="f-photo" placeholder="${this.t("photoUrlPlaceholder")}" value="${esc(editItem?.photo ?? prefill.photo ?? "")}"></label>
       </div>
       <div class="modal-actions">
-        <button class="btn ghost" id="f-template">📚 Template kiezen</button>
-        <button class="btn primary" id="f-submit">${isEdit ? "Opslaan" : "Toevoegen"}</button>
+        <button class="btn ghost" id="f-template">${this.t("chooseTemplateBtn")}</button>
+        <button class="btn primary" id="f-submit">${isEdit ? this.t("saveBtn") : this.t("addBtn")}</button>
       </div>
     `, { wide: false });
 
     const q = (s) => h.modal.querySelector(s);
     const nameEl = q("#f-name"), addedEl = q("#f-added"), expEl = q("#f-expiry");
     const emojiEl = q("#m-emoji"), suggestEl = q("#f-suggest"), hintEl = q("#f-hint");
+    const lang = this._lang();
 
     const setEmoji = (e) => { m.emoji = e; emojiEl.textContent = e; if (q("#f-emojiin")) q("#f-emojiin").value = e; };
     const setKind = (k) => {
@@ -392,7 +866,7 @@ class FridgeAssistantPanel extends HTMLElement {
       if (!val) { hintEl.textContent = ""; return; }
       const dl = daysBetween(todayISO(), val);
       const col = dl < 0 ? "var(--fa-red)" : dl <= (this._state.options.warn_days || 3) ? "var(--fa-orange)" : "var(--fa-green)";
-      hintEl.innerHTML = `<span style="color:${col}">● ${daysLabel(dl)}</span>`;
+      hintEl.innerHTML = `<span style="color:${col}">● ${daysLabel(dl, lang)}</span>`;
     };
     updateHint();
 
@@ -416,11 +890,11 @@ class FridgeAssistantPanel extends HTMLElement {
       m.template_id = null; m.category = null;
       suggestEl.className = "suggest";
       const aiBtn = this._state.options.ai_enabled
-        ? `<button class="s-mini ai" id="s-ai">✨ AI schat</button>` : "";
+        ? `<button class="s-mini ai" id="s-ai">${this.t("aiEstimateMini")}</button>` : "";
       suggestEl.innerHTML = `
-        <div class="s-body"><b>${heading || "Onbekend product"}</b>
-          <div class="s-sub">Nog geen template voor “${esc(query)}” — vul zelf een datum in${this._state.options.ai_enabled ? " of laat AI schatten" : ""}.</div></div>
-        <div class="s-actions">${aiBtn}<button class="s-mini" id="s-other" title="Kies template">📚</button></div>`;
+        <div class="s-body"><b>${heading || this.t("unknownProduct")}</b>
+          <div class="s-sub">${esc(this.t("noTemplateFor", query, this._state.options.ai_enabled))}</div></div>
+        <div class="s-actions">${aiBtn}<button class="s-mini" id="s-other" title="${this.t("chooseTemplateTitle")}">📚</button></div>`;
       wireActions(query);
     };
 
@@ -443,18 +917,18 @@ class FridgeAssistantPanel extends HTMLElement {
         suggestEl.innerHTML = `
           <span class="s-emoji">${t.emoji || "📋"}</span>
           <div class="s-body"><b>${esc(t.name)}</b>
-            <div class="s-sub">${noHere ? "Niet geschikt voor deze locatie" : `${lm[m.location].label}: ${sl[m.location]} dagen`}${t.notes ? " · " + esc(t.notes) : ""}</div></div>
+            <div class="s-sub">${noHere ? this.t("notSuitableHere") : this.t("daysAtLocation", this._locMeta(m.location).label, sl[m.location])}${t.notes ? " · " + esc(t.notes) : ""}</div></div>
           <div class="s-actions">
-            ${this._state.options.ai_enabled ? `<button class="s-mini" id="s-ai" title="AI-schatting">✨</button>` : ""}
-            <button class="s-mini" id="s-other" title="Andere template">📚</button>
-            <button class="s-mini ghost" id="s-dismiss" title="Niet dit — handmatig">✕</button>
+            ${this._state.options.ai_enabled ? `<button class="s-mini" id="s-ai" title="${this.t("aiEstimateTitle")}">✨</button>` : ""}
+            <button class="s-mini" id="s-other" title="${this.t("otherTemplateTitle")}">📚</button>
+            <button class="s-mini ghost" id="s-dismiss" title="${this.t("notThisManualTitle")}">✕</button>
           </div>`;
         wireActions(query);
         const d = q("#s-dismiss");
         if (d) d.addEventListener("click", () => {
           m.noAutoMatch = true; m.expiryManual = false; m.expirySource = "manual";
           setEmoji("🍽️"); expEl.value = ""; m.expiry = ""; updateHint();
-          showManual(query, "Handmatig invullen");
+          showManual(query, this.t("manualEntry"));
         });
       } else {
         showManual(query);
@@ -479,7 +953,7 @@ class FridgeAssistantPanel extends HTMLElement {
     expEl.addEventListener("input", () => { m.expiryManual = true; m.expiry = expEl.value; updateHint(); });
     q("#f-adv").addEventListener("click", () => {
       const box = q("#f-advbox"); box.classList.toggle("hidden");
-      q("#f-adv").textContent = box.classList.contains("hidden") ? "Meer opties ▾" : "Minder opties ▴";
+      q("#f-adv").textContent = box.classList.contains("hidden") ? this.t("moreOptions") : this.t("lessOptions");
     });
     if (q("#f-emojiin")) q("#f-emojiin").addEventListener("input", (e) => setEmoji(e.target.value || "🍽️"));
     q("#f-template").addEventListener("click", () =>
@@ -510,7 +984,7 @@ class FridgeAssistantPanel extends HTMLElement {
         if (isEdit) {
           await this._call("update_item", { item_id: editItem.id, changes: payload });
           h.close();
-          this._toast("Opgeslagen ✓");
+          this._toast(this.t("savedToast"));
         } else {
           // Save AI result as a template if the user opted in.
           const saveTpl = h.modal.querySelector("#s-savetpl");
@@ -531,20 +1005,20 @@ class FridgeAssistantPanel extends HTMLElement {
           const res = await this._call("add_item", { item: payload });
           h.close();
           const code = res?.item?.code;
-          this._toast(`Toegevoegd ✓ ${code ? "code " + code : ""}`, {
-            actionLabel: "🏷️ Print", onAction: () => this._printSticker(res.item.id),
+          this._toast(this.t("addedToast", code), {
+            actionLabel: this.t("printActionLabel"), onAction: () => this._printSticker(res.item.id),
           });
         }
       } catch (e) {
         q("#f-submit").disabled = false;
-        this._toast("Fout: " + (e.message || e), { type: "bad" });
+        this._toast(this.t("errorPrefix") + (e.message || e), { type: "bad" });
       }
     });
 
     // A scanned product prefills advanced fields — open the box so they show.
     if (!isEdit && (prefill.quantity || prefill.notes || prefill.photo)) {
       q("#f-advbox").classList.remove("hidden");
-      q("#f-adv").textContent = "Minder opties ▴";
+      q("#f-adv").textContent = this.t("lessOptions");
     }
 
     setTimeout(() => nameEl.focus(), 60);
@@ -553,13 +1027,14 @@ class FridgeAssistantPanel extends HTMLElement {
 
   async _aiEstimate(name, ctx) {
     const { m, setEmoji, setKind, suggestEl } = ctx;
+    const lang = this._lang();
     suggestEl.className = "suggest";
-    suggestEl.innerHTML = `<div class="s-body"><b>✨ AI denkt na…</b><div class="s-sub">Houdbaarheid van “${esc(name)}” schatten…</div></div><div class="spinner"></div>`;
+    suggestEl.innerHTML = `<div class="s-body"><b>${this.t("aiThinking")}</b><div class="s-sub">${esc(this.t("estimatingFor", name))}</div></div><div class="spinner"></div>`;
     let res;
     try { res = await this._call("estimate", { name }); }
     catch (e) {
       suggestEl.className = "suggest bad";
-      suggestEl.innerHTML = `<div class="s-body"><b>AI-schatting mislukt</b><div class="s-sub">${esc(e.message || e)}</div></div>`;
+      suggestEl.innerHTML = `<div class="s-body"><b>${this.t("aiFailed")}</b><div class="s-sub">${esc(e.message || e)}</div></div>`;
       return;
     }
     const est = res.estimate;
@@ -568,7 +1043,6 @@ class FridgeAssistantPanel extends HTMLElement {
     const addedEl = ctx.addedEl || suggestEl.parentNode.querySelector("#f-added");
     const expEl = ctx.expEl || suggestEl.parentNode.querySelector("#f-expiry");
     const hintEl = suggestEl.parentNode.querySelector("#f-hint");
-    const lm = this._state.location_meta;
     const warn = this._state.options.warn_days || 3;
 
     // Recompute the expiry date + hint from the (possibly edited) AI days.
@@ -582,27 +1056,28 @@ class FridgeAssistantPanel extends HTMLElement {
         if (expEl.value) {
           const dl = daysBetween(todayISO(), expEl.value);
           const col = dl < 0 ? "var(--fa-red)" : dl <= warn ? "var(--fa-orange)" : "var(--fa-green)";
-          hintEl.innerHTML = `<span style="color:${col}">● ${daysLabel(dl)}</span>`;
+          hintEl.innerHTML = `<span style="color:${col}">● ${daysLabel(dl, lang)}</span>`;
         } else hintEl.innerHTML = "";
       }
     };
 
     const cell = (loc) => {
       const d = est.shelf_life[loc];
+      const lm = this._locMeta(loc);
       return `<div class="ai-loc ${loc === m.location ? "active" : ""}" data-loccell="${loc}">
-        <span class="ai-loc-emoji">${lm[loc].emoji}</span>
-        <span class="ai-days-wrap"><input class="ai-days" type="number" inputmode="numeric" min="0" max="3650" step="1" data-loc="${loc}" value="${d ?? ""}" placeholder="—"><i>dg</i></span>
-        <small>${lm[loc].label}</small>
+        <span class="ai-loc-emoji">${lm.emoji}</span>
+        <span class="ai-days-wrap"><input class="ai-days" type="number" inputmode="numeric" min="0" max="3650" step="1" data-loc="${loc}" value="${d ?? ""}" placeholder="—"><i>${this.t("dayUnitShort")}</i></span>
+        <small>${lm.label}</small>
       </div>`;
     };
 
     suggestEl.className = "suggest ai";
     suggestEl.innerHTML = `
-      <div class="ai-head"><span class="s-emoji">${est.emoji || "✨"}</span><b>AI-schatting</b><span class="s-badge ai">AI · ${esc(res.estimate.provider || "")}</span></div>
-      <div class="ai-sub">Klopt niet helemaal? Tik een dag-getal aan en pas het aan 👇</div>
+      <div class="ai-head"><span class="s-emoji">${est.emoji || "✨"}</span><b>${this.t("aiEstimateTitle")}</b><span class="s-badge ai">AI · ${esc(res.estimate.provider || "")}</span></div>
+      <div class="ai-sub">${this.t("aiHint")}</div>
       <div class="ai-locs">${this._state.locations.map(cell).join("")}</div>
       ${est.notes ? `<div class="s-sub">💡 ${esc(est.notes)}</div>` : ""}
-      <label class="checkline"><input type="checkbox" id="s-savetpl" checked> Bewaar (met jouw aanpassingen) als template</label>
+      <label class="checkline"><input type="checkbox" id="s-savetpl" checked> ${this.t("saveAsTemplateLabel")}</label>
     `;
     suggestEl.querySelectorAll(".ai-days").forEach((inp) =>
       inp.addEventListener("input", () => {
@@ -618,19 +1093,18 @@ class FridgeAssistantPanel extends HTMLElement {
   /* ---- TEMPLATE PICKER ---- */
   _openTemplatePicker(onPick) {
     const templates = this._state.templates;
-    const cats = this._state.categories;
     const kinds = this._state.kinds || {};
     let kindFilter = "all";
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-title"><h3>📚 Kies een template</h3></div>
+        <div class="m-title"><h3>${this.t("pickTemplateTitle")}</h3></div>
         <button class="icon-btn" id="tp-close">✕</button>
       </div>
       <div class="seg" id="tp-kinds">
-        <button data-kind="all" class="on">Alles</button>
-        ${Object.keys(kinds).map((k) => `<button data-kind="${k}">${kinds[k].emoji} ${kinds[k].short || kinds[k].label}</button>`).join("")}
+        <button data-kind="all" class="on">${this.t("all")}</button>
+        ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button data-kind="${k}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
       </div>
-      <div class="search big"><span>🔍</span><input id="tp-search" placeholder="Zoek in ${templates.length} templates…" autocomplete="off"></div>
+      <div class="search big"><span>🔍</span><input id="tp-search" placeholder="${esc(this.t("searchInTemplates", templates.length))}" autocomplete="off"></div>
       <div class="tp-list" id="tp-list"></div>
     `, { wide: true });
     const listEl = h.modal.querySelector("#tp-list");
@@ -643,14 +1117,14 @@ class FridgeAssistantPanel extends HTMLElement {
         return t.name.toLowerCase().includes(qq) || (t.aliases || []).some((a) => a.toLowerCase().includes(qq));
       });
       listEl.innerHTML = filtered.map((t) => {
-        const c = cats[t.category] || {};
+        const c = this._catMeta(t.category);
         const sl = t.shelf_life || {};
         return `<button class="tp-item" data-id="${t.id}">
           <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
-          <span class="tp-name"><b>${esc(t.name)}</b><small>${(kinds[this._kindOf(t)] || {}).emoji || ""} ${esc(c.label || t.category)}${t.source === "user" || t.source === "ai" ? " · eigen" : ""}</small></span>
+          <span class="tp-name"><b>${esc(t.name)}</b><small>${this._kindMeta(this._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}${t.source === "user" || t.source === "ai" ? this.t("ownSuffix") : ""}</small></span>
           <span class="tp-sl">${["koelkast", "vriezer", "buiten"].map((l) => sl[l] ? `<i>${({ koelkast: "🧊", vriezer: "❄️", buiten: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
         </button>`;
-      }).join("") || `<div class="empty small"><p>Niets gevonden.</p></div>`;
+      }).join("") || `<div class="empty small"><p>${this.t("nothingFound")}</p></div>`;
       listEl.querySelectorAll(".tp-item").forEach((b) =>
         b.addEventListener("click", () => {
           const t = templates.find((x) => x.id === b.dataset.id);
@@ -674,22 +1148,21 @@ class FridgeAssistantPanel extends HTMLElement {
 
   /* ---- TEMPLATES MANAGER (view / edit / add — no AI required) ---- */
   _openTemplatesManager() {
-    const cats = this._state.categories;
     const kinds = this._state.kinds || {};
     let kindFilter = "all";
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-title"><h3>📚 Templates</h3></div>
-        ${this._state.options.ai_enabled ? `<button class="btn ai icon-only" id="tm-ai" title="Template met AI">✨</button>` : ""}
-        <button class="btn primary icon-only" id="tm-new" title="Nieuwe template">＋</button>
+        <div class="m-title"><h3>${this.t("templatesTitle")}</h3></div>
+        ${this._state.options.ai_enabled ? `<button class="btn ai icon-only" id="tm-ai" title="${this.t("templateWithAiTitle")}">✨</button>` : ""}
+        <button class="btn primary icon-only" id="tm-new" title="${this.t("newTemplateTitleIcon")}">＋</button>
         <button class="icon-btn" id="tm-close">✕</button>
       </div>
       <div class="seg" id="tm-kinds">
-        <button data-kind="all" class="on">Alles</button>
-        ${Object.keys(kinds).map((k) => `<button data-kind="${k}">${kinds[k].emoji} ${kinds[k].short || kinds[k].label}</button>`).join("")}
-        ${(this._state.hidden || []).length ? `<button data-kind="hidden" title="Verborgen standaard-templates">🙈</button>` : ""}
+        <button data-kind="all" class="on">${this.t("all")}</button>
+        ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button data-kind="${k}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
+        ${(this._state.hidden || []).length ? `<button data-kind="hidden" title="${this.t("hiddenTemplatesTitle")}">🙈</button>` : ""}
       </div>
-      <div class="search big"><span>🔍</span><input id="tm-search" placeholder="Zoek of filter…" autocomplete="off"></div>
+      <div class="search big"><span>🔍</span><input id="tm-search" placeholder="${this.t("searchOrFilterPlaceholder")}" autocomplete="off"></div>
       <div class="tp-list" id="tm-list"></div>
     `, { wide: true });
     const listEl = h.modal.querySelector("#tm-list");
@@ -698,15 +1171,15 @@ class FridgeAssistantPanel extends HTMLElement {
       if (kindFilter === "hidden") {
         const hidden = this._state.hidden || [];
         listEl.innerHTML = hidden.map((t) => {
-          const c = cats[t.category] || {};
+          const c = this._catMeta(t.category);
           return `<div class="tp-item"><span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
             <span class="tp-name"><b>${esc(t.name)}</b><small>${esc(c.label || t.category)}</small></span>
-            <button class="s-mini" data-unhide="${t.id}">↩︎ Terug</button></div>`;
-        }).join("") || `<div class="empty small"><p>Niets verborgen.</p></div>`;
+            <button class="s-mini" data-unhide="${t.id}">${this.t("backBtn")}</button></div>`;
+        }).join("") || `<div class="empty small"><p>${this.t("nothingHidden")}</p></div>`;
         listEl.querySelectorAll("[data-unhide]").forEach((b) =>
           b.addEventListener("click", async () => {
             await this._call("unhide_template", { template_id: b.dataset.unhide });
-            this._toast("Teruggezet ✓"); render();
+            this._toast(this.t("restoredToast")); render();
           }));
         return;
       }
@@ -716,20 +1189,20 @@ class FridgeAssistantPanel extends HTMLElement {
         if (!qq) return true;
         return t.name.toLowerCase().includes(qq)
           || (t.aliases || []).some((a) => a.toLowerCase().includes(qq))
-          || ((cats[t.category] || {}).label || "").toLowerCase().includes(qq);
+          || (this._catMeta(t.category).label || "").toLowerCase().includes(qq);
       });
       listEl.innerHTML = templates.map((t) => {
-        const c = cats[t.category] || {};
+        const c = this._catMeta(t.category);
         const sl = t.shelf_life || {};
         const badge = t.custom
-          ? (t.builtin ? `<span class="tm-badge edit">aangepast</span>` : `<span class="tm-badge own">eigen</span>`)
+          ? (t.builtin ? `<span class="tm-badge edit">${this.t("customizedBadge")}</span>` : `<span class="tm-badge own">${this.t("ownBadge")}</span>`)
           : "";
         return `<button class="tp-item" data-id="${t.id}">
           <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
-          <span class="tp-name"><b>${esc(t.name)}${badge}</b><small>${(kinds[this._kindOf(t)] || {}).emoji || ""} ${esc(c.label || t.category)}</small></span>
+          <span class="tp-name"><b>${esc(t.name)}${badge}</b><small>${this._kindMeta(this._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}</small></span>
           <span class="tp-sl">${["koelkast", "vriezer", "buiten"].map((l) => sl[l] ? `<i>${({ koelkast: "🧊", vriezer: "❄️", buiten: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
         </button>`;
-      }).join("") || `<div class="empty small"><p>Niets in deze groep.</p></div>`;
+      }).join("") || `<div class="empty small"><p>${this.t("nothingInGroup")}</p></div>`;
       listEl.querySelectorAll(".tp-item").forEach((b) =>
         b.addEventListener("click", () => {
           const t = this._state.templates.find((x) => x.id === b.dataset.id);
@@ -759,11 +1232,11 @@ class FridgeAssistantPanel extends HTMLElement {
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-emoji">✨</div>
-        <div class="m-title"><h3>Template met AI</h3><div class="s-sub">Typ een product; AI schat de houdbaarheid, jij past aan.</div></div>
+        <div class="m-title"><h3>${this.t("templateWithAiTitle")}</h3><div class="s-sub">${this.t("templateWithAiSub")}</div></div>
         <button class="icon-btn" id="ai-close">✕</button>
       </div>
-      <label class="field"><span>Product of gerecht</span><input id="ai-name" placeholder="bv. zelfgemaakte curry" enterkeyhint="go" autocomplete="off"></label>
-      <div class="modal-actions"><button class="btn ai" id="ai-go">✨ Schat met AI</button></div>
+      <label class="field"><span>${this.t("productOrDishLabel")}</span><input id="ai-name" placeholder="${this.t("productOrDishPlaceholder")}" enterkeyhint="go" autocomplete="off"></label>
+      <div class="modal-actions"><button class="btn ai" id="ai-go">${this.t("estimateWithAiBtn")}</button></div>
     `);
     const q = (s) => h.modal.querySelector(s);
     const nameEl = q("#ai-name");
@@ -772,12 +1245,12 @@ class FridgeAssistantPanel extends HTMLElement {
       const name = (nameEl.value || "").trim();
       if (name.length < 2) { nameEl.focus(); return; }
       const btn = q("#ai-go");
-      btn.disabled = true; btn.textContent = "✨ AI denkt na…";
+      btn.disabled = true; btn.textContent = this.t("aiThinking");
       let res;
       try { res = await this._call("estimate", { name }); }
       catch (e) {
-        btn.disabled = false; btn.textContent = "✨ Schat met AI";
-        this._toast("AI: " + (e.message || e), { type: "bad" });
+        btn.disabled = false; btn.textContent = this.t("estimateWithAiBtn");
+        this._toast(this.t("aiErrorPrefix") + (e.message || e), { type: "bad" });
         return;
       }
       const est = res.estimate;
@@ -795,42 +1268,46 @@ class FridgeAssistantPanel extends HTMLElement {
 
   _openTemplateEditor(tpl, isNew, onChanged) {
     const cats = this._state.categories;
-    const locs = this._state.locations, lm = this._state.location_meta;
+    const locs = this._state.locations;
     const t = tpl || { name: "", emoji: "", category: "overig", shelf_life: {}, aliases: [], notes: "" };
-    const catOf = (k) => cats[k] || cats.overig;
+    const catOf = (k) => this._catMeta(k) || this._catMeta("overig");
     const kinds = this._state.kinds || {};
     const curKind = t.kind || this._kindOf(t);
     const sl = t.shelf_life || {};
-    const catOptions = Object.keys(cats).map((k) =>
-      `<option value="${k}" ${k === (t.category || "overig") ? "selected" : ""}>${cats[k].emoji} ${cats[k].label}</option>`).join("");
-    const dayField = (loc) =>
-      `<label class="field"><span>${lm[loc].emoji} ${lm[loc].label}</span><input type="number" inputmode="numeric" min="0" max="3650" class="te-day" data-loc="${loc}" value="${sl[loc] ?? ""}" placeholder="n.v.t."></label>`;
+    const catOptions = Object.keys(cats).map((k) => {
+      const cm = this._catMeta(k);
+      return `<option value="${k}" ${k === (t.category || "overig") ? "selected" : ""}>${cm.emoji} ${cm.label}</option>`;
+    }).join("");
+    const dayField = (loc) => {
+      const lm = this._locMeta(loc);
+      return `<label class="field"><span>${lm.emoji} ${lm.label}</span><input type="number" inputmode="numeric" min="0" max="3650" class="te-day" data-loc="${loc}" value="${sl[loc] ?? ""}" placeholder="${this.t("notApplicablePlaceholder")}"></label>`;
+    };
     const isBuiltin = !!t.builtin;
     const isOverride = !!(t.custom && t.builtin);
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-emoji" id="te-prev">${t.emoji || catOf(t.category).emoji}</div>
-        <div class="m-title"><h3>${isNew ? "Nieuwe template" : "Template bewerken"}</h3>
-          ${!isNew ? `<div class="s-sub">${isOverride ? "Aanpassing van standaard-template" : (t.builtin ? "Standaard-template — wijziging maakt een eigen versie" : "Eigen template")}</div>` : ""}
+        <div class="m-title"><h3>${isNew ? this.t("newTemplateHeading") : this.t("editTemplateHeading")}</h3>
+          ${!isNew ? `<div class="s-sub">${isOverride ? this.t("overrideNote") : (t.builtin ? this.t("builtinNote") : this.t("ownTemplateNote"))}</div>` : ""}
         </div>
         <button class="icon-btn" id="te-close">✕</button>
       </div>
       <div class="grid2">
-        <label class="field"><span>Naam</span><input id="te-name" value="${esc(t.name)}" placeholder="bv. Zelfgemaakte pesto"></label>
-        <label class="field"><span>Emoji</span><input id="te-emoji" maxlength="4" value="${esc(t.emoji || "")}" placeholder="🥫"></label>
+        <label class="field"><span>${this.t("nameLabel")}</span><input id="te-name" value="${esc(t.name)}" placeholder="${this.t("namePlaceholderTemplate")}"></label>
+        <label class="field"><span>${this.t("emojiLabel")}</span><input id="te-emoji" maxlength="4" value="${esc(t.emoji || "")}" placeholder="🥫"></label>
       </div>
-      <label class="field"><span>Soort</span>
-        <div class="seg" id="te-kind">${Object.keys(kinds).map((k) => `<button type="button" data-kind="${k}" class="${curKind === k ? "on" : ""}">${kinds[k].emoji} ${kinds[k].short || kinds[k].label}</button>`).join("")}</div>
+      <label class="field"><span>${this.t("kindLabel")}</span>
+        <div class="seg" id="te-kind">${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button type="button" data-kind="${k}" class="${curKind === k ? "on" : ""}">${km.emoji || ""} ${km.short}</button>`; }).join("")}</div>
       </label>
-      <label class="field"><span>Categorie</span><div class="select-wrap"><select id="te-cat">${catOptions}</select></div></label>
-      <div class="te-sec">Houdbaarheid in dagen — leeg = niet geschikt</div>
+      <label class="field"><span>${this.t("categoryLabel")}</span><div class="select-wrap"><select id="te-cat">${catOptions}</select></div></label>
+      <div class="te-sec">${this.t("shelfLifeSectionLabel")}</div>
       <div class="grid3">${locs.map(dayField).join("")}</div>
-      <label class="field"><span>Ook herkennen als (komma-gescheiden)</span><input id="te-aliases" value="${esc((t.aliases || []).join(", "))}" placeholder="pasta bolognese, spaghetti"></label>
-      <label class="field"><span>Notitie / bewaartip</span><input id="te-notes" value="${esc(t.notes || "")}" placeholder="Laat afkoelen voor invriezen"></label>
+      <label class="field"><span>${this.t("aliasesLabel")}</span><input id="te-aliases" value="${esc((t.aliases || []).join(", "))}" placeholder="${this.t("aliasesPlaceholder")}"></label>
+      <label class="field"><span>${this.t("notesTipLabel")}</span><input id="te-notes" value="${esc(t.notes || "")}" placeholder="${this.t("notesTipPlaceholder")}"></label>
       <div class="modal-actions ${!isNew ? "with-del" : ""}">
-        ${isOverride ? `<button class="btn ghost" id="te-reset">↺ Herstel</button>` : ""}
-        ${!isNew ? `<button class="btn ghost danger-text" id="te-del">${isBuiltin ? "🙈 Verwijder" : "🗑 Verwijder"}</button>` : ""}
-        <button class="btn primary" id="te-save">Opslaan</button>
+        ${isOverride ? `<button class="btn ghost" id="te-reset">${this.t("restoreDefaultBtn")}</button>` : ""}
+        ${!isNew ? `<button class="btn ghost danger-text" id="te-del">${isBuiltin ? this.t("builtinRemoveBtn") : this.t("customRemoveBtn")}</button>` : ""}
+        <button class="btn primary" id="te-save">${this.t("saveBtn")}</button>
       </div>
     `);
     const q = (s) => h.modal.querySelector(s);
@@ -871,18 +1348,18 @@ class FridgeAssistantPanel extends HTMLElement {
       try {
         await this._call("add_template", { template });
         h.close();
-        this._toast(isNew ? "Template toegevoegd ✓" : "Template opgeslagen ✓");
+        this._toast(isNew ? this.t("templateAddedToast") : this.t("templateSavedToast"));
         onChanged && onChanged();
       } catch (e) {
         q("#te-save").disabled = false;
-        this._toast("Fout: " + (e.message || e), { type: "bad" });
+        this._toast(this.t("errorPrefix") + (e.message || e), { type: "bad" });
       }
     });
     const reset = q("#te-reset");
     if (reset) reset.addEventListener("click", async () => {
       await this._call("remove_template", { template_id: tpl.id });
       h.close();
-      this._toast("Hersteld naar standaard ✓");
+      this._toast(this.t("restoredDefaultToast"));
       onChanged && onChanged();
     });
     const del = q("#te-del");
@@ -890,7 +1367,7 @@ class FridgeAssistantPanel extends HTMLElement {
       if (isBuiltin) await this._call("hide_template", { template_id: tpl.id });
       else await this._call("remove_template", { template_id: tpl.id });
       h.close();
-      this._toast(isBuiltin ? "Uit lijst gehaald ✓" : "Template verwijderd ✓");
+      this._toast(isBuiltin ? this.t("removedFromListToast") : this.t("templateDeletedToast"));
       onChanged && onChanged();
     });
     setTimeout(() => q("#te-name").focus(), 60);
@@ -898,31 +1375,32 @@ class FridgeAssistantPanel extends HTMLElement {
 
   /* ---- ITEM DETAIL ---- */
   _openItemModal(i) {
-    const lm = this._state.location_meta[i.location] || {};
+    const lm = this._locMeta(i.location);
     const col = STATUS_COLOR[i.status];
+    const lang = this._lang();
     const h = this._openModal(`
       <div class="detail-head" style="--c:${col}">
         <div class="d-emoji">${i.emoji || "🍽️"}</div>
         <div class="d-title"><h2>${esc(i.name)}</h2><div class="d-code">${esc(i.code)}</div></div>
         <button class="icon-btn" id="d-close">✕</button>
       </div>
-      <div class="d-status" style="--c:${col}">${daysLabel(i.days_left)}${i.expiry_date ? " · " + fmtDate(i.expiry_date) : ""}</div>
+      <div class="d-status" style="--c:${col}">${daysLabel(i.days_left, lang)}${i.expiry_date ? " · " + fmtDate(i.expiry_date, lang) : ""}</div>
       <div class="d-rows">
-        <div class="d-row"><span>Locatie</span><b>${lm.emoji || ""} ${esc(lm.label || i.location)}</b></div>
-        ${i.added_by_name ? `<div class="d-row"><span>Toegevoegd door</span><b class="who">${this._avatar(i.added_by_name, i.added_by_picture, 24)} ${esc(i.added_by_name)}</b></div>` : ""}
-        ${i.contents && i.contents !== i.name ? `<div class="d-row"><span>Inhoud</span><b>${esc(i.contents)}</b></div>` : ""}
-        <div class="d-row"><span>Erin gelegd</span><b>${fmtDate(i.added_date)}${i.age_days != null ? ` · ${i.age_days} dg geleden` : ""}</b></div>
-        <div class="d-row"><span>Houdbaar tot</span><b>${i.expiry_date ? fmtDate(i.expiry_date) : "—"}</b></div>
-        ${i.quantity ? `<div class="d-row"><span>Hoeveelheid</span><b>${esc(i.quantity)}</b></div>` : ""}
-        ${i.notes ? `<div class="d-row"><span>Notitie</span><b>${esc(i.notes)}</b></div>` : ""}
+        <div class="d-row"><span>${this.t("locationLabel")}</span><b>${lm.emoji || ""} ${esc(lm.label || i.location)}</b></div>
+        ${i.added_by_name ? `<div class="d-row"><span>${this.t("addedByLabel")}</span><b class="who">${this._avatar(i.added_by_name, i.added_by_picture, 24)} ${esc(i.added_by_name)}</b></div>` : ""}
+        ${i.contents && i.contents !== i.name ? `<div class="d-row"><span>${this.t("contentsLabel")}</span><b>${esc(i.contents)}</b></div>` : ""}
+        <div class="d-row"><span>${this.t("dateInDetailLabel")}</span><b>${fmtDate(i.added_date, lang)}${i.age_days != null ? ` · ${esc(this.t("daysAgoShort", i.age_days))}` : ""}</b></div>
+        <div class="d-row"><span>${this.t("expiryLabel")}</span><b>${i.expiry_date ? fmtDate(i.expiry_date, lang) : "—"}</b></div>
+        ${i.quantity ? `<div class="d-row"><span>${this.t("quantityLabel")}</span><b>${esc(i.quantity)}</b></div>` : ""}
+        ${i.notes ? `<div class="d-row"><span>${this.t("notesLabel")}</span><b>${esc(i.notes)}</b></div>` : ""}
       </div>
       <div class="modal-actions">
-        <button class="btn ghost" id="d-print">🏷️ Sticker</button>
-        <button class="btn ghost" id="d-edit">✏️ Bewerken</button>
+        <button class="btn ghost" id="d-print">${this.t("stickerBtn")}</button>
+        <button class="btn ghost" id="d-edit">${this.t("editBtn")}</button>
       </div>
       <div class="modal-actions done-row">
-        <button class="btn good" id="d-eaten">🍽️ Opgegeten</button>
-        <button class="btn tossed" id="d-tossed">🗑️ Weggegooid</button>
+        <button class="btn good" id="d-eaten">${this.t("eatenBtn")}</button>
+        <button class="btn tossed" id="d-tossed">${this.t("tossedBtn")}</button>
       </div>
     `);
     const q = (s) => h.modal.querySelector(s);
@@ -939,62 +1417,63 @@ class FridgeAssistantPanel extends HTMLElement {
       const res = await this._call("complete_item", { item_id: item.id, action });
       ev = res && res.event;
     } catch (e) {
-      this._toast("Fout: " + (e.message || e), { type: "bad" });
+      this._toast(this.t("errorPrefix") + (e.message || e), { type: "bad" });
       return;
     }
     close && close();
     const eaten = action === "eaten";
     this._toast(
-      `${eaten ? "🍽️" : "🗑️"} ${esc(item.name)} ${eaten ? "opgegeten" : "weggegooid"}`,
-      ev ? { actionLabel: "Ongedaan", onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {}
+      this.t("completedToast", eaten ? "🍽️" : "🗑️", esc(item.name), eaten),
+      ev ? { actionLabel: this.t("undoLabel"), onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {}
     );
   }
 
   async _eatScanned(raw, setStatus, count) {
     const val = String(raw || "").trim().toUpperCase();
     if (!(/^[A-Z]{2}\d{2}$/.test(val) || /^\d{2}[A-Z]{2}$/.test(val))) {
-      setStatus(`Dit is geen eigen koelkast-label (${val})`);
+      setStatus(this.t("notOwnLabel", val));
       return;
     }
     const item = (this._state.items || []).find((i) => (i.code || "").toUpperCase() === val);
-    if (!item) { setStatus(`Geen actief item met code ${val}`); return; }
+    if (!item) { setStatus(this.t("noActiveItemWithCode", val)); return; }
     let ev = null;
     try {
       const res = await this._call("complete_item", { item_id: item.id, action: "eaten" });
       ev = res && res.event;
-    } catch (e) { setStatus("Kon niet opeten — probeer opnieuw"); return; }
+    } catch (e) { setStatus(this.t("couldNotEatRetry")); return; }
     count.n = (count.n || 0) + 1;
-    setStatus(`🍽️ ${item.name} opgegeten (${count.n})`);
-    this._toast(`🍽️ ${esc(item.name)} opgegeten`,
-      ev ? { actionLabel: "Ongedaan", onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {});
+    setStatus(this.t("eatenStatusCount", item.name, count.n));
+    this._toast(this.t("completedToast", "🍽️", esc(item.name), true),
+      ev ? { actionLabel: this.t("undoLabel"), onAction: () => this._call("restore_item", { event_id: ev.id }).catch(() => {}) } : {});
   }
 
   /* ---- CLEAN MODE ---- */
   _openCleanModal() {
     const expired = this._state.items.filter((i) => i.status === "expired");
     const soon = this._state.items.filter((i) => i.status === "soon");
+    const lang = this._lang();
     const row = (i, checked) => {
-      const lm = this._state.location_meta[i.location] || {};
+      const lm = this._locMeta(i.location);
       return `<label class="clean-row">
         <input type="checkbox" data-id="${i.id}" ${checked ? "checked" : ""}>
         <span class="cr-emoji">${i.emoji || "🍽️"}</span>
         <span class="cr-name"><b>${esc(i.name)}</b><small>${lm.emoji || ""} ${esc(lm.label || i.location)} · ${esc(i.code)}</small></span>
-        <span class="cr-days" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left)}</span>
+        <span class="cr-days" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left, lang)}</span>
       </label>`;
     };
     const h = this._openModal(`
-      <div class="modal-head"><div class="m-title"><h3>🧹 Koelkast opruimen</h3></div><button class="icon-btn" id="c-close">✕</button></div>
-      ${expired.length ? `<div class="clean-sec">Over datum</div>${expired.map((i) => row(i, true)).join("")}` : ""}
-      ${soon.length ? `<div class="clean-sec">Bijna over datum</div>${soon.map((i) => row(i, false)).join("")}` : ""}
-      ${!expired.length && !soon.length ? `<div class="empty small"><div class="empty-emoji">✨</div><p>Alles is nog goed!</p></div>` : ""}
-      ${(expired.length || soon.length) ? `<div class="modal-actions"><button class="btn danger" id="c-remove">Verwijder geselecteerde</button></div>` : ""}
+      <div class="modal-head"><div class="m-title"><h3>${this.t("cleanUpTitle")}</h3></div><button class="icon-btn" id="c-close">✕</button></div>
+      ${expired.length ? `<div class="clean-sec">${this.t("expiredSection")}</div>${expired.map((i) => row(i, true)).join("")}` : ""}
+      ${soon.length ? `<div class="clean-sec">${this.t("soonSection")}</div>${soon.map((i) => row(i, false)).join("")}` : ""}
+      ${!expired.length && !soon.length ? `<div class="empty small"><div class="empty-emoji">✨</div><p>${this.t("allGoodMessage")}</p></div>` : ""}
+      ${(expired.length || soon.length) ? `<div class="modal-actions"><button class="btn danger" id="c-remove">${this.t("removeSelectedBtn")}</button></div>` : ""}
     `, { wide: true });
     const q = (s) => h.modal.querySelector(s);
     q("#c-close").addEventListener("click", h.close);
     const rm = q("#c-remove");
     const updateBtn = () => {
       const n = h.modal.querySelectorAll("input[data-id]:checked").length;
-      if (rm) { rm.textContent = n ? `Verwijder ${n} item${n === 1 ? "" : "s"}` : "Niets geselecteerd"; rm.disabled = !n; }
+      if (rm) { rm.textContent = n ? this.t("removeNItems", n) : this.t("nothingSelected"); rm.disabled = !n; }
     };
     h.modal.querySelectorAll("input[data-id]").forEach((c) => c.addEventListener("change", updateBtn));
     updateBtn();
@@ -1004,7 +1483,7 @@ class FridgeAssistantPanel extends HTMLElement {
       rm.disabled = true;
       const res = await this._call("remove_expired", { ids });
       h.close();
-      this._toast(`🧹 ${res.count} item${res.count === 1 ? "" : "s"} opgeruimd`);
+      this._toast(this.t("cleanedUpToast", res.count));
     });
   }
 
@@ -1043,21 +1522,21 @@ class FridgeAssistantPanel extends HTMLElement {
       && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-title"><div class="m-strong">📷 Scan</div>
-          <div class="m-sub">Je koelkast-label om te zoeken, of een winkelbarcode</div></div>
+        <div class="m-title"><div class="m-strong">${this.t("scanTitle")}</div>
+          <div class="m-sub">${this.t("scanSub")}</div></div>
         <button class="icon-btn" id="sc-close">✕</button>
       </div>
       <div class="seg sc-mode" id="sc-mode">
-        <button type="button" data-mode="find" class="on">🔎 Zoeken</button>
-        <button type="button" data-mode="eat">🍽️ Opeten</button>
+        <button type="button" data-mode="find" class="on">${this.t("searchModeBtn")}</button>
+        <button type="button" data-mode="eat">${this.t("eatModeBtn")}</button>
       </div>
       <div class="scanbox${canLive ? "" : " hidden"}" id="sc-box">
         <video id="sc-video" playsinline muted></video><div class="scan-frame"></div>
       </div>
       <div class="scan-status" id="sc-status"></div>
       <div class="modal-actions">
-        ${decodable ? `<label class="btn ghost filepick">📸 Foto<input id="sc-file" type="file" accept="image/*" capture="environment"></label>` : ""}
-        <button class="btn ghost" id="sc-manual">⌨️ Code typen</button>
+        ${decodable ? `<label class="btn ghost filepick">${this.t("photoBtn")}<input id="sc-file" type="file" accept="image/*" capture="environment"></label>` : ""}
+        <button class="btn ghost" id="sc-manual">${this.t("typeCodeBtn")}</button>
       </div>
     `, { wide: false });
     const q = (s) => h.modal.querySelector(s);
@@ -1084,16 +1563,14 @@ class FridgeAssistantPanel extends HTMLElement {
       b.addEventListener("click", () => {
         mode = b.dataset.mode;
         modeEl.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-        setStatus(mode === "eat"
-          ? "🍽️ Scan je labels — elk item wordt meteen opgegeten"
-          : "Richt op de barcode…");
+        setStatus(mode === "eat" ? this.t("eatModeStatus") : this.t("aimAtBarcode"));
       }));
     q("#sc-close").addEventListener("click", () => { stop(); h.close(); });
 
     q("#sc-manual").addEventListener("click", () => {
       stop();
       const box = q("#sc-box"); if (box) box.classList.add("hidden");
-      q("#sc-status").innerHTML = `<div class="scan-manual"><input id="sc-code" placeholder="Code, bv. AB12" autocomplete="off" autocapitalize="characters" enterkeyhint="search"><button class="btn primary" id="sc-go">Zoek</button></div>`;
+      q("#sc-status").innerHTML = `<div class="scan-manual"><input id="sc-code" placeholder="${this.t("codeInputPlaceholder")}" autocomplete="off" autocapitalize="characters" enterkeyhint="search"><button class="btn primary" id="sc-go">${this.t("searchBtn")}</button></div>`;
       const go = () => { const v = (q("#sc-code").value || "").trim(); if (v) handle(v); };
       q("#sc-go").addEventListener("click", go);
       q("#sc-code").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
@@ -1104,7 +1581,7 @@ class FridgeAssistantPanel extends HTMLElement {
     if (fileEl) fileEl.addEventListener("change", async (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
-      q("#sc-status").textContent = "Foto lezen…";
+      q("#sc-status").textContent = this.t("readingPhoto");
       try {
         let raw = null;
         if (bd) {
@@ -1117,26 +1594,24 @@ class FridgeAssistantPanel extends HTMLElement {
           finally { URL.revokeObjectURL(url); }
         }
         if (raw) { handle(raw); return; }
-        q("#sc-status").textContent = "Geen barcode gevonden — probeer dichterbij en scherp.";
-      } catch (err) { q("#sc-status").textContent = "Geen barcode gevonden — probeer dichterbij en scherp."; }
+        q("#sc-status").textContent = this.t("noBarcodeFound");
+      } catch (err) { q("#sc-status").textContent = this.t("noBarcodeFound"); }
     });
 
     if (!canLive) {
-      q("#sc-status").textContent = decodable
-        ? "Maak een foto van de barcode 📸"
-        : "Live scannen kan niet op dit toestel. Typ de code ⌨️.";
+      q("#sc-status").textContent = decodable ? this.t("takePhotoOfBarcode") : this.t("liveScanUnavailable");
       if (!decodable) setTimeout(() => q("#sc-manual").click(), 0);
       return;
     }
 
     const video = q("#sc-video");
-    q("#sc-status").textContent = "Richt op de barcode…";
+    q("#sc-status").textContent = this.t("aimAtBarcode");
     if (bd) {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
       } catch (err) {
         q("#sc-box").classList.add("hidden");
-        q("#sc-status").textContent = "Geen camera-toegang. Gebruik 📸 Foto of ⌨️ Code.";
+        q("#sc-status").textContent = this.t("noCameraAccess");
         return;
       }
       video.srcObject = stream;
@@ -1164,7 +1639,7 @@ class FridgeAssistantPanel extends HTMLElement {
         catch (e) { await reader.decodeFromVideoDevice(null, video, cb); }
       } catch (err) {
         q("#sc-box").classList.add("hidden");
-        q("#sc-status").textContent = "Geen camera-toegang. Gebruik 📸 Foto of ⌨️ Code.";
+        q("#sc-status").textContent = this.t("noCameraAccess");
       }
     }
   }
@@ -1175,26 +1650,26 @@ class FridgeAssistantPanel extends HTMLElement {
     // Our own label: 2 letters + 2 digits, either order (AB12 / 12AB).
     if (/^[A-Z]{2}\d{2}$/.test(val) || /^\d{2}[A-Z]{2}$/.test(val)) {
       const item = (this._state.items || []).find((i) => (i.code || "").toUpperCase() === val);
-      if (item) { this._openItemModal(item); this._toast(`🔎 ${esc(item.name)} gevonden`); }
-      else this._toast(`Geen actief item met code ${esc(val)} — misschien al opgegeten/weggegooid (📜)`, { type: "bad" });
+      if (item) { this._openItemModal(item); this._toast(this.t("foundToast", esc(item.name))); }
+      else this._toast(this.t("noActiveItemHistoryHint", esc(val)), { type: "bad" });
       return;
     }
     // Public retail barcode: EAN-8/13 or UPC (8–14 digits).
     if (/^\d{8,14}$/.test(val)) { this._onRetailBarcode(val); return; }
-    this._toast(`Onbekende code: ${esc(val)}`, { type: "bad" });
+    this._toast(this.t("unknownCode", esc(val)), { type: "bad" });
   }
 
   async _onRetailBarcode(code) {
     // Resolve server-side: our own memory first, then OpenFoodFacts (no key).
-    this._toast(`🔎 Product opzoeken… (${code})`);
+    this._toast(this.t("lookingUpProduct", code));
     let res = null;
     try { res = await this._call("lookup_barcode", { barcode: code }); }
     catch (e) { /* offline / not ready — fall through */ }
     const src = (res && (res.known || res.product)) || null;
 
     if (!src || !src.name) {
-      this._openAddModal({ notes: `Winkelbarcode ${code}`, barcode: code });
-      this._toast(`Geen productnaam gevonden (${code}) — vul zelf in`, { type: "bad" });
+      this._openAddModal({ notes: this.t("retailBarcodeNote", code), barcode: code });
+      this._toast(this.t("noProductNameFound", code), { type: "bad" });
       return;
     }
     const known = !!(res && res.known);
@@ -1205,10 +1680,10 @@ class FridgeAssistantPanel extends HTMLElement {
       photo: src.photo || "",
       emoji: src.emoji || undefined,
       kind: src.kind || undefined,
-      notes: known ? "" : `Winkelbarcode ${code}`,
+      notes: known ? "" : this.t("retailBarcodeNote", code),
       barcode: code,
     });
-    this._toast(known ? `🔁 Eerder toegevoegd — herkend` : `🛒 ${src.name}`);
+    this._toast(known ? this.t("recognizedBefore") : this.t("productFoundToast", src.name));
   }
 
   /* ---- HISTORY (paged) ---- */
@@ -1216,23 +1691,24 @@ class FridgeAssistantPanel extends HTMLElement {
     if (!ts) return "";
     const d = new Date(ts);
     if (isNaN(d)) return "";
+    const lang = this._lang();
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (s < 60) return "net";
+    if (s < 60) return this.t("justNow");
     const m = Math.floor(s / 60);
-    if (m < 60) return `${m} min geleden`;
+    if (m < 60) return this.t("minutesAgo", m);
     const hh = Math.floor(m / 60);
-    if (hh < 24) return `${hh} uur geleden`;
+    if (hh < 24) return this.t("hoursAgo", hh);
     const dd = Math.floor(hh / 24);
-    if (dd === 1) return "gisteren";
-    if (dd < 7) return `${dd} dagen geleden`;
-    return `${d.getDate()} ${MONTHS_NL[d.getMonth()]} ${d.getFullYear()}`;
+    if (dd === 1) return this.t("yesterday");
+    if (dd < 7) return this.t("daysAgo", dd);
+    return `${d.getDate()} ${MONTHS[lang][d.getMonth()]} ${d.getFullYear()}`;
   }
 
   _historyRow(e) {
     const it = e.item || {};
-    const lm = (this._state.location_meta || {})[it.location] || {};
+    const lm = this._locMeta(it.location);
     const eaten = e.action === "eaten";
-    const act = `<span class="hi-act ${eaten ? "eaten" : "tossed"}">${eaten ? "🍽️ Opgegeten" : "🗑️ Weggegooid"}</span>`;
+    const act = `<span class="hi-act ${eaten ? "eaten" : "tossed"}">${eaten ? this.t("eatenBtn") : this.t("tossedBtn")}</span>`;
     const who = e.by_name
       ? `<span class="who">${this._avatar(e.by_name, e.by_picture, 18)}${esc(e.by_name)}</span>`
       : `<span class="muted">—</span>`;
@@ -1243,7 +1719,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="hi-sub2">${act}${it.location ? ` · ${lm.emoji || ""} ${esc(lm.label || it.location)}` : ""}</div>
       </div>
       <div class="hi-right">${who}<div class="hi-time">${esc(this._relTime(e.ts))}</div>
-        <button class="hi-undo" data-restore="${esc(e.id)}" title="Terugzetten in de koelkast">↩︎ Terug</button>
+        <button class="hi-undo" data-restore="${esc(e.id)}" title="${this.t("restoreToFridgeTitle")}">${this.t("backBtn")}</button>
       </div>
     </div>`;
   }
@@ -1251,12 +1727,12 @@ class FridgeAssistantPanel extends HTMLElement {
   _openHistory() {
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-title"><h3>📜 Geschiedenis</h3><div class="s-sub" id="hi-sub"></div></div>
+        <div class="m-title"><h3>${this.t("historyHeading")}</h3><div class="s-sub" id="hi-sub"></div></div>
         <button class="icon-btn" id="hi-close">✕</button>
       </div>
-      <div class="tp-list" id="hi-list"><div class="loading">Laden…</div></div>
+      <div class="tp-list" id="hi-list"><div class="loading">${this.t("loading")}</div></div>
       <div class="modal-actions" id="hi-more-wrap" style="display:none">
-        <button class="btn ghost" id="hi-more">Meer laden</button>
+        <button class="btn ghost" id="hi-more">${this.t("loadMoreBtn")}</button>
       </div>
     `, { wide: true });
     const q = (s) => h.modal.querySelector(s);
@@ -1270,12 +1746,12 @@ class FridgeAssistantPanel extends HTMLElement {
       if (more) more.disabled = true;
       let res;
       try { res = await this._call("history", { limit: PAGE, offset }); }
-      catch (e) { listEl.innerHTML = `<div class="empty small"><p>Kon geschiedenis niet laden.</p></div>`; return; }
+      catch (e) { listEl.innerHTML = `<div class="empty small"><p>${this.t("historyLoadFailed")}</p></div>`; return; }
       total = res.total;
       loaded.push(...(res.events || []));
       offset += (res.events || []).length;
       if (!loaded.length) {
-        listEl.innerHTML = `<div class="empty small"><div class="empty-emoji">📭</div><p>Nog niets opgegeten of weggegooid.</p></div>`;
+        listEl.innerHTML = `<div class="empty small"><div class="empty-emoji">📭</div><p>${this.t("historyEmpty")}</p></div>`;
       } else {
         listEl.innerHTML = loaded.map((e) => this._historyRow(e)).join("");
         listEl.querySelectorAll("[data-restore]").forEach((b) =>
@@ -1283,17 +1759,17 @@ class FridgeAssistantPanel extends HTMLElement {
             const id = b.dataset.restore;
             b.disabled = true;
             try { await this._call("restore_item", { event_id: id }); }
-            catch (e) { b.disabled = false; this._toast("Herstellen mislukt", { type: "bad" }); return; }
+            catch (e) { b.disabled = false; this._toast(this.t("restoreFailedToast"), { type: "bad" }); return; }
             const idx = loaded.findIndex((x) => x.id === id);
             if (idx >= 0) loaded.splice(idx, 1);
             total = Math.max(0, total - 1);
             offset = Math.max(0, offset - 1);
             const row = b.closest(".hi-row"); if (row) row.remove();
-            q("#hi-sub").textContent = total ? `${total} afgerond${total >= 500 ? " (laatste 500)" : ""}` : "";
-            this._toast("↩︎ Teruggezet in de koelkast");
+            q("#hi-sub").textContent = total ? this.t("historySummary", total) : "";
+            this._toast(this.t("restoredToFridgeToast"));
           }));
       }
-      q("#hi-sub").textContent = total ? `${total} afgerond${total >= 500 ? " (laatste 500)" : ""}` : "";
+      q("#hi-sub").textContent = total ? this.t("historySummary", total) : "";
       const wrap = q("#hi-more-wrap");
       if (offset < total) { wrap.style.display = ""; if (more) more.disabled = false; }
       else wrap.style.display = "none";
@@ -1308,21 +1784,21 @@ class FridgeAssistantPanel extends HTMLElement {
     const p = this._state.printer || {};
     const copies = opts.label_copies || 1;
     const note = opts.printer_enabled
-      ? `Label <b>${esc(p.label || "99014")}</b> (${esc(p.label_size || "54 × 101 mm")}, getest) · printer automatisch gedetecteerd. Print ${copies}× per keer.`
-      : `Label <b>${esc(p.label || "99014")}</b> (${esc(p.label_size || "54 × 101 mm")}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij ⚙️ instellingen.`;
+      ? this.t("printerOnNote", esc(p.label || "99014"), esc(p.label_size || "54 × 101 mm"), copies)
+      : this.t("printerOffNote", esc(p.label || "99014"), esc(p.label_size || "54 × 101 mm"));
 
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-title"><div class="m-strong">🏷️ Sticker printen</div>
+        <div class="m-title"><div class="m-strong">${this.t("printStickerModalTitle")}</div>
           <div class="m-sub">${esc(item?.name || "")} · <code>${esc(item?.code || "")}</code></div>
         </div>
         <button class="icon-btn" id="p-close">✕</button>
       </div>
-      <div class="label-preview" id="p-preview"><div class="muted">Voorbeeld laden…</div></div>
+      <div class="label-preview" id="p-preview"><div class="muted">${this.t("previewLoading")}</div></div>
       <div class="print-note">${note}</div>
       <div class="modal-actions">
-        <button class="btn ghost" id="p-cancel">Sluiten</button>
-        <button class="btn primary" id="p-print">🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}</button>
+        <button class="btn ghost" id="p-cancel">${this.t("closeBtn")}</button>
+        <button class="btn primary" id="p-print">${this.t("printBtnLabel", copies)}</button>
       </div>
     `, { wide: false });
     const q = (s) => h.modal.querySelector(s);
@@ -1334,31 +1810,31 @@ class FridgeAssistantPanel extends HTMLElement {
         const r = await this._call("render_label", { item_id: id });
         q("#p-preview").innerHTML = `<img alt="Label ${esc(item?.code || "")}" src="data:image/png;base64,${r.png_base64}">`;
       } catch (e) {
-        q("#p-preview").innerHTML = `<div class="muted">Voorbeeld niet beschikbaar: ${esc(e.message || e)}</div>`;
+        q("#p-preview").innerHTML = `<div class="muted">${esc(this.t("previewUnavailable", e.message || e))}</div>`;
       }
     })();
 
     q("#p-print").addEventListener("click", async () => {
       const btn = q("#p-print");
-      btn.disabled = true; btn.textContent = "Bezig…";
+      btn.disabled = true; btn.textContent = this.t("workingLabel");
       try {
         const res = await this._call("print_sticker", { item_id: id });
         if (res.printed) {
-          this._toast(`🖨️ Sticker ${res.code} geprint${res.copies > 1 ? ` (${res.copies}×)` : ""}`);
+          this._toast(this.t("stickerPrintedToast", res.code, res.copies || 1));
           h.close();
           return;
         }
         const map = {
-          printer_disabled: "Printer staat uit — zet 'm aan bij ⚙️ instellingen.",
-          printer_unreachable: "Label Printer add-on niet bereikbaar. Staat de add-on aan?",
-          printer_not_connected: "De DYMO is niet gevonden. Check kabel/stroom en herstart de add-on.",
-          render_failed: "Label renderen mislukte.",
+          printer_disabled: this.t("printerDisabledReason"),
+          printer_unreachable: this.t("printerUnreachableReason"),
+          printer_not_connected: this.t("printerNotConnectedReason"),
+          render_failed: this.t("renderFailedReason"),
         };
-        this._toast("🖨️ " + (map[res.reason] || `Printen mislukte (${res.reason || "?"})`), { type: "bad" });
-        btn.disabled = false; btn.textContent = `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`;
+        this._toast("🖨️ " + (map[res.reason] || this.t("genericPrintFailed", res.reason)), { type: "bad" });
+        btn.disabled = false; btn.textContent = this.t("printBtnLabel", copies);
       } catch (e) {
-        this._toast("Print mislukt: " + (e.message || e), { type: "bad" });
-        btn.disabled = false; btn.textContent = `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`;
+        this._toast(this.t("printFailedError", e.message || e), { type: "bad" });
+        btn.disabled = false; btn.textContent = this.t("printBtnLabel", copies);
       }
     });
   }

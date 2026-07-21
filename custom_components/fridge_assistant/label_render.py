@@ -226,8 +226,8 @@ def _fmt_date(d, lang):
 def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Image.Image:
     """Render ``item`` into a 642x1192 grayscale label image."""
     ctx = ctx or {}
-    lang = ctx.get("lang", "nl")
-    s = STRINGS.get(lang, STRINGS["nl"])
+    lang = ctx.get("lang", "en")
+    s = STRINGS.get(lang, STRINGS["en"])
     today = ctx.get("today") or date.today()
     if isinstance(today, str):
         today = _parse(today) or date.today()

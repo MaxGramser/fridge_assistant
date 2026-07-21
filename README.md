@@ -36,6 +36,7 @@ full undo. It works completely offline; AI estimates and the printer add-on are 
   - [Multi-user tracking & history](#multi-user-tracking--history)
   - [Notifications](#notifications)
   - [Mobile-first design](#mobile-first-design)
+- [Language](#language)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Services](#services)
@@ -191,6 +192,21 @@ The panel is built to be used one-handed with your phone in hand, standing at th
 - 44px+ tap targets and 16px inputs (avoids iOS auto-zoom on focus).
 - A thumb-reachable floating add (➕) and scan (📷) button, bottom-right.
 
+## Language
+
+Fridge Assistant follows a simple rule everywhere — panel, printed labels, AI prompts, and the daily
+expiry notification: **Dutch if Home Assistant's language is Dutch, English for anything else.**
+There's no third language and no silent fallback to Dutch for an unconfigured or unrecognized
+language — only nl/en text ships, and everything else resolves to English.
+
+The panel reads the current user's Home Assistant frontend language (so two people in the same
+household can each see their own language); server-rendered text (printed labels, the daily
+notification, AI prompts) reads Home Assistant's system-configured language, since those aren't tied
+to a specific browser session.
+
+> The 99-recipe shelf-life database itself (product names, storage tips) is Dutch content — a
+> different kind of project than UI translation — and isn't translated by this rule.
+
 ## Installation
 
 ### Via HACS (custom repository)
@@ -283,11 +299,8 @@ HTTP API.
 
 ## Known limitations
 
-- **The panel UI is currently Dutch-only.** It does not yet follow Home Assistant's configured
-  language — every label in the custom panel is hardcoded Dutch, regardless of your HA locale. (The
-  integration's own setup/options screens *do* follow HA's language normally, and AI notes / printed
-  label text follow `hass.config.language` with an English translation available — but the main panel
-  itself is not yet localized.)
+- Only Dutch and English exist (see [Language](#language)) — the 99-recipe database's product names
+  and notes stay Dutch regardless of the UI language.
 - Live camera barcode scanning requires a secure context (HTTPS); it degrades gracefully to
   photo-capture or manual entry otherwise.
 - The label printer add-on has only been tested against DYMO LabelWriter 400/450/550 with 99014 labels.

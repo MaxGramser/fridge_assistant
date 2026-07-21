@@ -27,9 +27,10 @@ from .const import (
     CONF_PRINTER_URL,
     DEFAULT_KIND,
     DEFAULT_PRINTER_URL,
-    KINDS,
     LABEL_MEDIA,
-    LOCATION_META,
+    kind_label as get_kind_label,
+    location_label as get_location_label,
+    resolve_language,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,15 +42,13 @@ class PrinterError(Exception):
 
 def build_label_context(hass: HomeAssistant, item: dict[str, Any]) -> dict[str, Any]:
     """Build the display context (labels, language, date) for rendering."""
-    location = item.get("location")
-    location_label = LOCATION_META.get(location, {}).get("label", location or "")
+    lang = resolve_language(hass)
+    location = item.get("location") or ""
     kind = item.get("kind") or CATEGORY_KIND.get(item.get("category"), DEFAULT_KIND)
-    kind_label = KINDS.get(kind, {}).get("short", "")
-    lang = (getattr(hass.config, "language", None) or "nl").split("-")[0]
     return {
         "lang": lang,
-        "location_label": location_label,
-        "kind_label": kind_label,
+        "location_label": get_location_label(location, lang),
+        "kind_label": get_kind_label(kind, lang),
         "today": dt_util.now().date(),
     }
 

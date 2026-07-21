@@ -31,6 +31,13 @@ LOCATION_META: Final = {
     LOCATION_FREEZER: {"label": "Vriezer", "emoji": "❄️", "icon": "mdi:snowflake"},
     LOCATION_OUTSIDE: {"label": "Buiten koelkast", "emoji": "🧺", "icon": "mdi:basket-outline"},
 }
+# English labels for server-rendered text (printed labels, notifications).
+# The panel translates location_meta itself; this covers backend-only output.
+LOCATION_LABELS_EN: Final = {
+    LOCATION_FRIDGE: "Fridge",
+    LOCATION_FREEZER: "Freezer",
+    LOCATION_OUTSIDE: "Pantry",
+}
 
 # Categories (keys must match seed_templates.json)
 CATEGORIES: Final = {
@@ -62,6 +69,11 @@ KINDS: Final = {
         "label": "Gerechten", "short": "Gerechten",
         "emoji": "🍲", "icon": "mdi:pot-steam",
     },
+}
+# English labels for server-rendered text (printed labels); see LOCATION_LABELS_EN.
+KIND_LABELS_EN: Final = {
+    KIND_INGREDIENT: {"label": "Individual ingredients", "short": "Ingredients"},
+    KIND_DISH: {"label": "Dishes", "short": "Dishes"},
 }
 # Which fine category rolls up into which big group (used as the default).
 CATEGORY_KIND: Final = {
@@ -138,3 +150,28 @@ SOURCE_TEMPLATE: Final = "template"
 SOURCE_AI: Final = "ai"
 SOURCE_MANUAL: Final = "manual"
 SOURCE_NONE: Final = "none"
+
+
+def resolve_language(hass) -> str:
+    """"nl" if Home Assistant's language is Dutch, "en" for anything else.
+
+    Fridge Assistant only ships nl/en text, so any other configured HA
+    language (or none at all) falls back to English rather than Dutch.
+    """
+    raw = (getattr(hass.config, "language", None) or "").split("-")[0].lower()
+    return "nl" if raw == "nl" else "en"
+
+
+def location_label(location: str, lang: str) -> str:
+    """Server-rendered location label (printed labels, notifications)."""
+    if lang == "en":
+        return LOCATION_LABELS_EN.get(location, location)
+    return LOCATION_META.get(location, {}).get("label", location)
+
+
+def kind_label(kind: str, lang: str, *, short: bool = True) -> str:
+    """Server-rendered kind label (printed labels)."""
+    table = KIND_LABELS_EN if lang == "en" else KINDS
+    meta = table.get(kind, {})
+    key = "short" if short else "label"
+    return meta.get(key) or meta.get("label") or kind

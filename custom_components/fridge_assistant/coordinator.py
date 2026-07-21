@@ -35,9 +35,10 @@ from .const import (
     DEFAULT_WARN_DAYS,
     DOMAIN,
     EVENT_EXPIRING,
-    LOCATION_META,
     NOTIFICATION_ID,
     SIGNAL_UPDATED,
+    location_label as get_location_label,
+    resolve_language,
 )
 from .store import FridgeStore, item_days_left
 
@@ -120,11 +121,12 @@ class FridgeRuntime:
         )
 
         if notify and self.options[CONF_NOTIFY_ENABLED]:
+            lang = resolve_language(self.hass)
             if items:
                 persistent_notification.async_create(
                     self.hass,
-                    _notification_message(summaries),
-                    title="🧊 Koelkast — let op de houdbaarheid",
+                    _notification_message(summaries, lang),
+                    title=_NOTIFY_STRINGS[lang]["title"],
                     notification_id=NOTIFICATION_ID,
                 )
             else:
@@ -133,31 +135,57 @@ class FridgeRuntime:
         return items
 
 
-def _notification_message(summaries: list[dict[str, Any]]) -> str:
-    expired = [s for s in summaries if (s["days_left"] or 0) < 0]
-    soon = [s for s in summaries if (s["days_left"] or 0) >= 0]
+# Small nl/en string set for the daily persistent notification. Follows
+# resolve_language() — same nl-if-Dutch-else-English rule as everywhere else.
+_NOTIFY_STRINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "title": "🧊 Koelkast — let op de houdbaarheid",
+        "expired_heading": "**Over datum:**",
+        "soon_heading": "**Bijna over datum:**",
+        "all_good": "Alles is nog goed. 👍",
+        "today": " — vandaag!",
+        "expired_suffix": " — {n} dag(en) over datum",
+        "soon_suffix": " — nog {n} dag(en)",
+    },
+    "en": {
+        "title": "🧊 Fridge — check what's expiring",
+        "expired_heading": "**Past date:**",
+        "soon_heading": "**Expiring soon:**",
+        "all_good": "Everything is still good. 👍",
+        "today": " — today!",
+        "expired_suffix": " — {n} day(s) past date",
+        "soon_suffix": " — {n} day(s) left",
+    },
+}
+
+
+def _notification_message(summaries: list[dict[str, Any]], lang: str) -> str:
+    s = _NOTIFY_STRINGS[lang]
+    expired = [x for x in summaries if (x["days_left"] or 0) < 0]
+    soon = [x for x in summaries if (x["days_left"] or 0) >= 0]
     lines: list[str] = []
     if expired:
-        lines.append("**Over datum:**")
-        lines.extend(_line(s) for s in expired)
+        lines.append(s["expired_heading"])
+        lines.extend(_line(x, lang) for x in expired)
     if soon:
         if expired:
             lines.append("")
-        lines.append("**Bijna over datum:**")
-        lines.extend(_line(s) for s in soon)
-    return "\n".join(lines) if lines else "Alles is nog goed. 👍"
+        lines.append(s["soon_heading"])
+        lines.extend(_line(x, lang) for x in soon)
+    return "\n".join(lines) if lines else s["all_good"]
 
 
-def _line(s: dict[str, Any]) -> str:
-    loc = LOCATION_META.get(s["location"], {}).get("label", s["location"])
-    dl = s["days_left"]
+def _line(item: dict[str, Any], lang: str) -> str:
+    s = _NOTIFY_STRINGS[lang]
+    loc = get_location_label(item["location"], lang)
+    dl = item["days_left"]
     if dl is None:
         when = ""
     elif dl < 0:
-        when = f" — {abs(dl)} dag(en) over datum"
+        when = s["expired_suffix"].format(n=abs(dl))
     elif dl == 0:
-        when = " — vandaag!"
+        when = s["today"]
     else:
-        when = f" — nog {dl} dag(en)"
-    emoji = s.get("emoji") or "•"
-    return f"- {emoji} **{s['name']}** `{s['code']}` ({loc}){when}"
+        when = s["soon_suffix"].format(n=dl)
+    emoji = item.get("emoji") or "•"
+    return f"- {emoji} **{item['name']}** `{item['code']}` ({loc}){when}"

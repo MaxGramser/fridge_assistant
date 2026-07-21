@@ -23,6 +23,7 @@ from .const import (
     KIND_DISH,
     KIND_INGREDIENT,
     LOCATIONS,
+    resolve_language,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ _USER_TEMPLATE = (
 
 
 def _user_prompt(hass: HomeAssistant, name: str) -> str:
-    lang = getattr(hass.config, "language", None) or "nl"
+    lang = resolve_language(hass)
     return _USER_TEMPLATE.format(name=name, categories=", ".join(CATEGORIES), lang=lang)
 
 
