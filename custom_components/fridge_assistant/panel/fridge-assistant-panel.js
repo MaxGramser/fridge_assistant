@@ -2030,7 +2030,6 @@ const STYLES = `
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .18s;z-index:50;padding:0;}
 .overlay.show{opacity:1;}
 @media(min-width:640px){.overlay{align-items:center;padding:24px;}}
-@media(max-width:480px){.grid2{grid-template-columns:1fr;gap:0;}}
 .modal{background:var(--fa-card);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;overscroll-behavior:contain;border-radius:22px 22px 0 0;padding:18px;transform:translateY(24px);transition:transform .2s;box-shadow:0 -10px 40px rgba(0,0,0,.2);}
 .modal.wide{max-width:600px;}
 @media(min-width:640px){.modal{border-radius:22px;transform:translateY(12px) scale(.98);}}
@@ -2054,6 +2053,7 @@ const STYLES = `
 .field input{min-width:0;width:100%;box-sizing:border-box;height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);outline:none;transition:.15s;}
 .field input:focus{border-color:var(--fa-accent);box-shadow:0 0 0 4px rgba(0,122,255,.1);}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+@media(max-width:480px){.grid2{grid-template-columns:1fr;gap:0;}}
 .expiry-hint{font-size:13px;font-weight:600;min-height:18px;margin:-2px 2px 4px;}
 
 .seg{display:flex;gap:6px;background:var(--fa-bg);border-radius:12px;padding:4px;margin:12px 0;}
