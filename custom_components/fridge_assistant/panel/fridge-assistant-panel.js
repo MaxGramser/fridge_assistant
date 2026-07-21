@@ -201,6 +201,7 @@ const STRINGS = {
     takePhotoOfBarcode: "Maak een foto van de barcode 📸",
     liveScanUnavailable: "Live scannen kan niet op dit toestel. Typ de code ⌨️.",
     noCameraAccess: "Geen camera-toegang. Gebruik 📸 Foto of ⌨️ Code.",
+    torchTooltip: "Zaklamp",
 
     foundToast: (name) => `🔎 ${name} gevonden`,
     noActiveItemHistoryHint: (val) => `Geen actief item met code ${val} — misschien al opgegeten/weggegooid (📜)`,
@@ -396,6 +397,7 @@ const STRINGS = {
     takePhotoOfBarcode: "Take a photo of the barcode 📸",
     liveScanUnavailable: "Live scanning isn't available on this device. Type the code ⌨️.",
     noCameraAccess: "No camera access. Use 📸 Photo or ⌨️ Code.",
+    torchTooltip: "Flashlight",
 
     foundToast: (name) => `🔎 ${name} found`,
     noActiveItemHistoryHint: (val) => `No active item with code ${val} — maybe already eaten/tossed (📜)`,
@@ -1555,6 +1557,7 @@ class FridgeAssistantPanel extends HTMLElement {
       </div>
       <div class="scanbox${canLive ? "" : " hidden"}" id="sc-box">
         <video id="sc-video" playsinline muted></video><div class="scan-frame"></div>
+        <button class="icon-btn scan-torch hidden" id="sc-torch" title="${this.t("torchTooltip")}">🔦</button>
       </div>
       <div class="scan-status" id="sc-status"></div>
       <div class="modal-actions">
@@ -1612,8 +1615,10 @@ class FridgeAssistantPanel extends HTMLElement {
           const codes = await det.detect(await createImageBitmap(f));
           if (codes && codes.length) raw = codes[0].rawValue;
         } else if (zxing) {
+          const hints = new Map();
+          hints.set(zxing.DecodeHintType.TRY_HARDER, true);
           const url = URL.createObjectURL(f);
-          try { const r = await new zxing.BrowserMultiFormatReader().decodeFromImageUrl(url); raw = r && r.getText(); }
+          try { const r = await new zxing.BrowserMultiFormatReader(hints).decodeFromImageUrl(url); raw = r && r.getText(); }
           finally { URL.revokeObjectURL(url); }
         }
         if (raw) { handle(raw); return; }
@@ -1629,42 +1634,70 @@ class FridgeAssistantPanel extends HTMLElement {
 
     const video = q("#sc-video");
     q("#sc-status").textContent = this.t("aimAtBarcode");
-    if (bd) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
-      } catch (err) {
-        q("#sc-box").classList.add("hidden");
-        q("#sc-status").textContent = this.t("noCameraAccess");
-        return;
-      }
-      video.srcObject = stream;
-      try { await video.play(); } catch (e) { /* autoplay quirks */ }
-      const det = await this._makeDetector();
-      const tick = async () => {
-        if (stopped || !video.isConnected) { stop(); return; }
-        try {
-          const codes = await det.detect(video);
-          if (codes && codes.length) handle(codes[0].rawValue);
-        } catch (e) { /* transient decode error */ }
-        if (!stopped) timer = setTimeout(tick, 170);
-      };
-      tick();
-    } else {
-      // ZXing manages getUserMedia + the continuous decode loop itself.
-      const cb = (result) => {
-        if (stopped) return;
-        if (!video.isConnected) { stop(); return; }
-        if (result) handle(result.getText());
-      };
-      try {
-        reader = new zxing.BrowserMultiFormatReader();
-        try { await reader.decodeFromConstraints({ video: { facingMode: { ideal: "environment" } } }, video, cb); }
-        catch (e) { await reader.decodeFromVideoDevice(null, video, cb); }
-      } catch (err) {
-        q("#sc-box").classList.add("hidden");
-        q("#sc-status").textContent = this.t("noCameraAccess");
-      }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          aspectRatio: { ideal: 4 / 3 },
+        },
+      });
+    } catch (err) {
+      q("#sc-box").classList.add("hidden");
+      q("#sc-status").textContent = this.t("noCameraAccess");
+      return;
     }
+    video.srcObject = stream;
+    try { await video.play(); } catch (e) { /* autoplay quirks */ }
+
+    // Flashlight toggle, only shown when the track actually supports it.
+    const track = stream.getVideoTracks()[0];
+    const torchBtn = q("#sc-torch");
+    let torchOn = false;
+    try {
+      if (track.getCapabilities && track.getCapabilities().torch && torchBtn) {
+        torchBtn.classList.remove("hidden");
+        torchBtn.addEventListener("click", async () => {
+          const next = !torchOn;
+          try { await track.applyConstraints({ advanced: [{ torch: next }] }); torchOn = next; torchBtn.classList.toggle("on", torchOn); }
+          catch (e) { /* device refused mid-toggle, leave state as-is */ }
+        });
+      }
+    } catch (e) { /* getCapabilities unsupported (e.g. older iOS) — no flashlight button */ }
+
+    // Decode a cropped + upscaled canvas matching the visible .scan-frame overlay,
+    // instead of the raw video frame: lets you back off to a distance the camera
+    // can actually focus at while the barcode still fills the decoder's view.
+    const crop = document.createElement("canvas");
+    crop.width = 960; crop.height = 460;
+    const cropCtx = crop.getContext("2d", { willReadFrequently: true });
+    const det = bd ? await this._makeDetector() : null;
+    if (!bd) {
+      const hints = new Map();
+      hints.set(zxing.DecodeHintType.TRY_HARDER, true);
+      reader = new zxing.BrowserMultiFormatReader(hints);
+    }
+    const tick = async () => {
+      if (stopped || !video.isConnected) { stop(); return; }
+      if (video.videoWidth) {
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const sx = vw * 0.08, sy = vh * 0.30, sw = vw * 0.84, sh = vh * 0.40;
+        cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
+        try {
+          if (bd) {
+            const codes = await det.detect(crop);
+            if (codes && codes.length) { handle(codes[0].rawValue); return; }
+          } else {
+            try {
+              const result = reader.decode(crop);
+              if (result) { handle(result.getText()); return; }
+            } catch (e) { /* no barcode in this frame */ }
+          }
+        } catch (e) { /* transient decode error */ }
+      }
+      if (!stopped) timer = setTimeout(tick, 170);
+    };
+    tick();
   }
 
   _onScan(raw, h) {
@@ -2106,6 +2139,10 @@ const STYLES = `
 .scanbox.hidden{display:none;}
 .scanbox video{width:100%;height:100%;object-fit:cover;}
 .scan-frame{position:absolute;left:8%;right:8%;top:30%;bottom:30%;border:3px solid rgba(255,255,255,.92);border-radius:12px;}
+.scan-torch{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.45);color:#fff;}
+.scan-torch:hover{background:rgba(0,0,0,.6);}
+.scan-torch.on{background:var(--fa-accent);color:#fff;}
+.scan-torch.hidden{display:none;}
 .scan-status{min-height:20px;font-size:13px;color:var(--fa-muted);text-align:center;margin:8px 4px 0;}
 .scan-manual{display:flex;gap:8px;}
 .scan-manual input{flex:1;height:46px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);text-transform:uppercase;letter-spacing:.05em;outline:none;}
