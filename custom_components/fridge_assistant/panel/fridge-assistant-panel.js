@@ -2052,8 +2052,10 @@ const STYLES = `
 .field>span{font-size:13px;color:var(--fa-muted);font-weight:500;}
 .field input{min-width:0;width:100%;box-sizing:border-box;height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);outline:none;transition:.15s;}
 .field input:focus{border-color:var(--fa-accent);box-shadow:0 0 0 4px rgba(0,122,255,.1);}
+.field input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:flex;align-items:center;}
+.field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
-@media(max-width:480px){.grid2{grid-template-columns:1fr;gap:0;}}
+@media(max-width:480px){.grid2{display:block;}}
 .expiry-hint{font-size:13px;font-weight:600;min-height:18px;margin:-2px 2px 4px;}
 
 .seg{display:flex;gap:6px;background:var(--fa-bg);border-radius:12px;padding:4px;margin:12px 0;}
