@@ -27,10 +27,36 @@ from .const import (
     EVENT_ITEM_REMOVED,
     HISTORY_ACTIONS,
     LOCATIONS,
+    localized,
+    resolve_language,
+    shared_text,
 )
 from .coordinator import FridgeRuntime
 
 _LOGGER = logging.getLogger(__name__)
+
+# Follows resolve_language() — same nl-if-Dutch-else-English rule as everywhere else.
+_STRINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "ai_disabled": "AI-schattingen staan uit in de instellingen.",
+        "printer_disabled": "De printer staat uit in de instellingen van Fridge "
+        "Assistant.",
+        "printer_unreachable": "De Label Printer add-on is niet bereikbaar. Staat de "
+        "add-on aan?",
+        "print_failed": "Printen mislukte ({reason}).",
+        "sticker_title": "🖨️ Sticker printen",
+        "sticker_body": "{msg}\n\nSticker voor **{name}** (`{code}`).",
+    },
+    "en": {
+        "ai_disabled": "AI estimates are turned off in the settings.",
+        "printer_disabled": "The printer is turned off in Fridge Assistant's settings.",
+        "printer_unreachable": "The Label Printer add-on is unreachable. Is the "
+        "add-on running?",
+        "print_failed": "Print failed ({reason}).",
+        "sticker_title": "🖨️ Print sticker",
+        "sticker_body": "{msg}\n\nSticker for **{name}** (`{code}`).",
+    },
+}
 
 SERVICE_ADD_ITEM = "add_item"
 SERVICE_UPDATE_ITEM = "update_item"
@@ -117,7 +143,7 @@ def _get_runtime(hass: HomeAssistant) -> FridgeRuntime:
     for value in hass.data.get(DOMAIN, {}).values():
         if isinstance(value, FridgeRuntime):
             return value
-    raise HomeAssistantError("Fridge Assistant is niet (meer) geconfigureerd.")
+    raise HomeAssistantError(shared_text(hass, "not_configured"))
 
 
 def async_setup_services(hass: HomeAssistant) -> None:
@@ -146,7 +172,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         item_id = data.pop("id")
         item = runtime.store.update_item(item_id, data)
         if item is None:
-            raise HomeAssistantError(f"Item {item_id} niet gevonden.")
+            raise HomeAssistantError(shared_text(hass, "item_not_found", id=item_id))
         await runtime.async_changed()
         return {"item": item}
 
@@ -154,7 +180,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         runtime = _get_runtime(hass)
         item = runtime.store.remove_item(call.data["id"])
         if item is None:
-            raise HomeAssistantError(f"Item {call.data['id']} niet gevonden.")
+            raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
         await runtime.async_changed()
         hass.bus.async_fire(
             EVENT_ITEM_REMOVED, {"id": item["id"], "code": item["code"], "name": item["name"]}
@@ -172,7 +198,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             call.data["id"], call.data["action"], by, by_name
         )
         if event is None:
-            raise HomeAssistantError(f"Item {call.data['id']} niet gevonden.")
+            raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
         await runtime.async_changed()
         hass.bus.async_fire(
             EVENT_ITEM_COMPLETED,
@@ -198,7 +224,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_estimate(call: ServiceCall) -> ServiceResponse:
         runtime = _get_runtime(hass)
         if not runtime.options.get(CONF_AI_ENABLED):
-            raise HomeAssistantError("AI-schattingen staan uit in de instellingen.")
+            raise HomeAssistantError(localized(_STRINGS, resolve_language(hass), "ai_disabled"))
         try:
             result = await async_estimate(hass, call.data["name"], runtime.options)
         except AIEstimateError as err:
@@ -217,21 +243,25 @@ def async_setup_services(hass: HomeAssistant) -> None:
         runtime = _get_runtime(hass)
         item = runtime.store.items.get(call.data["id"])
         if item is None:
-            raise HomeAssistantError(f"Item {call.data['id']} niet gevonden.")
+            raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
         result = await async_print_item(hass, item, runtime.options)
         if not result.get("printed"):
+            lang = resolve_language(hass)
             reasons = {
-                "printer_disabled": "De printer staat uit in de instellingen van "
-                "Fridge Assistant.",
-                "printer_unreachable": "De Label Printer add-on is niet bereikbaar. "
-                "Staat de add-on aan?",
+                "printer_disabled": localized(_STRINGS, lang, "printer_disabled"),
+                "printer_unreachable": localized(_STRINGS, lang, "printer_unreachable"),
             }
-            msg = reasons.get(result.get("reason"),
-                              f"Printen mislukte ({result.get('reason')}).")
+            msg = reasons.get(
+                result.get("reason"),
+                localized(_STRINGS, lang, "print_failed", reason=result.get("reason")),
+            )
             persistent_notification.async_create(
                 hass,
-                f"{msg}\n\nSticker voor **{item['name']}** (`{item['code']}`).",
-                title="🖨️ Sticker printen",
+                localized(
+                    _STRINGS, lang, "sticker_body",
+                    msg=msg, name=item["name"], code=item["code"],
+                ),
+                title=localized(_STRINGS, lang, "sticker_title"),
                 notification_id="fridge_assistant_print",
             )
         return result
@@ -246,7 +276,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         elif item_id:
             item = runtime.store.items.get(item_id)
             if item is None:
-                raise HomeAssistantError(f"Item {item_id} niet gevonden.")
+                raise HomeAssistantError(shared_text(hass, "item_not_found", id=item_id))
         else:
             item = dict(_SAMPLE_ITEM)
         path = call.data.get("path") or "/share/fridge-assistant/_preview/label.png"

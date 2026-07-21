@@ -17,9 +17,11 @@ from .const import (
     DOMAIN,
     PANEL_ICON,
     PANEL_TITLE,
+    PANEL_TITLE_EN,
     PANEL_URL_PATH,
     PANEL_WEBCOMPONENT,
     URL_BASE,
+    resolve_language,
 )
 from .coordinator import FridgeRuntime
 from .services import async_setup_services, async_unload_services
@@ -117,12 +119,13 @@ async def _async_register_static(hass: HomeAssistant) -> None:
 async def _async_register_panel(hass: HomeAssistant) -> None:
     if PANEL_URL_PATH in hass.data.get(frontend.DATA_PANELS, {}):
         return
+    sidebar_title = PANEL_TITLE if resolve_language(hass) == "nl" else PANEL_TITLE_EN
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL_PATH,
         webcomponent_name=PANEL_WEBCOMPONENT,
         module_url=f"{URL_BASE}/panel.js",
-        sidebar_title=PANEL_TITLE,
+        sidebar_title=sidebar_title,
         sidebar_icon=PANEL_ICON,
         require_admin=False,
         config={},

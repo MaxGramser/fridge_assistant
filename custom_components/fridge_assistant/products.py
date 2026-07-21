@@ -14,6 +14,8 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .const import resolve_language
+
 _LOGGER = logging.getLogger(__name__)
 
 OFF_URL = "https://world.openfoodfacts.org/api/v2/product/{code}.json"
@@ -74,12 +76,14 @@ async def async_lookup_barcode(
     if data.get("status") != 1 or not isinstance(data.get("product"), dict):
         return None
     product = data["product"]
-    name = (
-        product.get("product_name_nl")
-        or product.get("product_name")
-        or product.get("brands")
-        or ""
-    ).strip()
+    generic_name = product.get("product_name")
+    dutch_name = product.get("product_name_nl")
+    first, second = (
+        (dutch_name, generic_name)
+        if resolve_language(hass) == "nl"
+        else (generic_name, dutch_name)
+    )
+    name = (first or second or product.get("brands") or "").strip()
     if not name:
         return None
     return {

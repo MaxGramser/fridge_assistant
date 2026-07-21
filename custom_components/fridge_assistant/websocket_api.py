@@ -38,11 +38,20 @@ from .const import (
     LOCATION_META,
     LOCATIONS,
     SIGNAL_UPDATED,
+    localized,
+    resolve_language,
+    shared_text,
 )
 from .coordinator import FridgeRuntime, get_runtime
 from .store import item_age_days, item_days_left, parse_date
 
 _LOGGER = logging.getLogger(__name__)
+
+# Follows resolve_language() — same nl-if-Dutch-else-English rule as everywhere else.
+_STRINGS: dict[str, dict[str, str]] = {
+    "nl": {"ai_disabled": "AI-schattingen staan uit in de instellingen."},
+    "en": {"ai_disabled": "AI estimates are turned off in the settings."},
+}
 
 
 def async_register_websocket(hass: HomeAssistant) -> None:
@@ -153,7 +162,7 @@ def _serialize_state(hass: HomeAssistant, runtime: FridgeRuntime) -> dict[str, A
 def _runtime_or_error(hass, connection, msg) -> FridgeRuntime | None:
     runtime = get_runtime(hass)
     if runtime is None:
-        connection.send_error(msg["id"], "not_ready", "Fridge Assistant niet geladen.")
+        connection.send_error(msg["id"], "not_ready", shared_text(hass, "not_loaded"))
         return None
     return runtime
 
@@ -227,7 +236,7 @@ async def ws_update_item(hass, connection, msg) -> None:
         return
     item = runtime.store.update_item(msg["item_id"], dict(msg["changes"]))
     if item is None:
-        connection.send_error(msg["id"], "not_found", "Item niet gevonden.")
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
     await runtime.async_changed()
     connection.send_result(msg["id"], {"item": item})
@@ -246,7 +255,7 @@ async def ws_remove_item(hass, connection, msg) -> None:
         return
     item = runtime.store.remove_item(msg["item_id"])
     if item is None:
-        connection.send_error(msg["id"], "not_found", "Item niet gevonden.")
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
     await runtime.async_changed()
     hass.bus.async_fire(
@@ -309,7 +318,7 @@ async def ws_complete_item(hass, connection, msg) -> None:
         by_name=user.name if user is not None else None,
     )
     if event is None:
-        connection.send_error(msg["id"], "not_found", "Item niet gevonden.")
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
     await runtime.async_changed()
     hass.bus.async_fire(
@@ -338,7 +347,7 @@ async def ws_restore_item(hass, connection, msg) -> None:
         return
     item = runtime.store.restore_item(msg["event_id"])
     if item is None:
-        connection.send_error(msg["id"], "not_found", "Kan niet herstellen.")
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "cannot_restore"))
         return
     await runtime.async_changed()
     connection.send_result(msg["id"], {"item": item})
@@ -449,7 +458,9 @@ async def ws_estimate(hass, connection, msg) -> None:
     if runtime is None:
         return
     if not runtime.options.get(CONF_AI_ENABLED):
-        connection.send_error(msg["id"], "ai_disabled", "AI-schattingen staan uit.")
+        connection.send_error(
+            msg["id"], "ai_disabled", localized(_STRINGS, resolve_language(hass), "ai_disabled")
+        )
         return
     try:
         result = await async_estimate(hass, msg["name"], runtime.options)
@@ -541,7 +552,7 @@ async def ws_print_sticker(hass, connection, msg) -> None:
         return
     item = runtime.store.items.get(msg["item_id"])
     if item is None:
-        connection.send_error(msg["id"], "not_found", "Item niet gevonden.")
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
     result = await async_print_item(hass, item, runtime.options)
     connection.send_result(msg["id"], result)
@@ -567,7 +578,10 @@ async def ws_render_label(hass, connection, msg) -> None:
     else:
         item = runtime.store.items.get(msg.get("item_id"))
         if item is None:
-            connection.send_error(msg["id"], "not_found", "Item niet gevonden.")
+            connection.send_error(
+                msg["id"], "not_found",
+                shared_text(hass, "item_not_found", id=msg.get("item_id")),
+            )
             return
     try:
         png = await async_render_png(hass, item)

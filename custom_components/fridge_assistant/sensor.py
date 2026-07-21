@@ -10,7 +10,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_WARN_DAYS, DOMAIN, LOCATIONS, SIGNAL_UPDATED
+from .const import CONF_WARN_DAYS, DOMAIN, LOCATIONS, SIGNAL_UPDATED, resolve_language
 from .coordinator import FridgeRuntime, item_summary
 
 
@@ -40,7 +40,7 @@ class _FridgeSensorBase(SensorEntity):
             identifiers={(DOMAIN, runtime.entry.entry_id)},
             name="Fridge Assistant",
             manufacturer="Fridge Assistant",
-            model="Inventaris",
+            model="Inventaris" if resolve_language(runtime.hass) == "nl" else "Inventory",
         )
 
     async def async_added_to_hass(self) -> None:

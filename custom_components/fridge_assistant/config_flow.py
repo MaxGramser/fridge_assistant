@@ -90,7 +90,8 @@ class FridgeAssistantOptionsFlow(OptionsFlow):
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0, max=60, step=1, mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="dagen",
+                        unit_of_measurement="days",
+                        translation_key=CONF_WARN_DAYS,
                     )
                 ),
                 vol.Optional(
@@ -114,14 +115,8 @@ class FridgeAssistantOptionsFlow(OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                        options=[
-                            selector.SelectOptionDict(
-                                value=CODE_FORMAT_LETTERS, label="Letters eerst (AB12)"
-                            ),
-                            selector.SelectOptionDict(
-                                value=CODE_FORMAT_DIGITS, label="Cijfers eerst (12AB)"
-                            ),
-                        ],
+                        options=[CODE_FORMAT_LETTERS, CODE_FORMAT_DIGITS],
+                        translation_key=CONF_CODE_FORMAT,
                     )
                 ),
                 vol.Optional(

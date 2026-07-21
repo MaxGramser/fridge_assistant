@@ -55,6 +55,17 @@
         "eaten": "Eaten",
         "tossed": "Tossed"
       }
+    },
+    "warn_days": {
+      "unit_of_measurement": {
+        "days": "days"
+      }
+    },
+    "code_format": {
+      "options": {
+        "letters_first": "Letters first (AB12)",
+        "digits_first": "Digits first (12AB)"
+      }
     }
   },
   "services": {

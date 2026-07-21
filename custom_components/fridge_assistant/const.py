@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Any, Final
 
 DOMAIN: Final = "fridge_assistant"
 
@@ -14,6 +14,7 @@ STORAGE_KEY: Final = "fridge_assistant.data"
 URL_BASE: Final = "/fridge_assistant_static"
 PANEL_URL_PATH: Final = "fridge-assistant"
 PANEL_TITLE: Final = "Koelkast"
+PANEL_TITLE_EN: Final = "Fridge"
 PANEL_ICON: Final = "mdi:fridge-outline"
 PANEL_WEBCOMPONENT: Final = "fridge-assistant-panel"
 
@@ -175,3 +176,31 @@ def kind_label(kind: str, lang: str, *, short: bool = True) -> str:
     meta = table.get(kind, {})
     key = "short" if short else "label"
     return meta.get(key) or meta.get("label") or kind
+
+
+def localized(strings: dict[str, dict[str, str]], lang: str, key: str, **kwargs: Any) -> str:
+    """Format ``key`` from a per-file nl/en STRINGS dict for ``lang``."""
+    return strings[lang][key].format(**kwargs)
+
+
+# Error strings identical across services.py and websocket_api.py (both raise
+# them for the same conditions), kept in one place to avoid drift.
+_SHARED_STRINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "not_configured": "Fridge Assistant is niet (meer) geconfigureerd.",
+        "not_loaded": "Fridge Assistant niet geladen.",
+        "item_not_found": "Item {id} niet gevonden.",
+        "cannot_restore": "Kan niet herstellen.",
+    },
+    "en": {
+        "not_configured": "Fridge Assistant is not configured (anymore).",
+        "not_loaded": "Fridge Assistant not loaded.",
+        "item_not_found": "Item {id} not found.",
+        "cannot_restore": "Cannot restore.",
+    },
+}
+
+
+def shared_text(hass, key: str, **kwargs: Any) -> str:
+    """nl/en text for an error shared by services.py and websocket_api.py."""
+    return localized(_SHARED_STRINGS, resolve_language(hass), key, **kwargs)

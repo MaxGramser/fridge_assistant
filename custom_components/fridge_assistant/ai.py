@@ -23,12 +23,51 @@ from .const import (
     KIND_DISH,
     KIND_INGREDIENT,
     LOCATIONS,
+    localized,
     resolve_language,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+
+# Follows resolve_language() — same nl-if-Dutch-else-English rule as everywhere else.
+_STRINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "no_name": "Geen productnaam opgegeven.",
+        "unreadable_json": "Kon AI-antwoord niet lezen: {err}",
+        "no_json": "AI gaf geen bruikbaar JSON-antwoord.",
+        "openai_error": "OpenAI-fout ({status}): {body}",
+        "openai_unreachable": "OpenAI onbereikbaar: {err}",
+        "unexpected_response": "Onverwacht OpenAI-antwoord.",
+        "no_ai": "Geen AI beschikbaar. Stel een conversation-agent of OpenAI-key in "
+        "bij de instellingen van Fridge Assistant.",
+        "no_agent": "Geen geschikte AI-agent gevonden. Voeg een LLM conversation-agent "
+        "toe (bijv. OpenAI) of vul een OpenAI-key in bij de instellingen van Fridge "
+        "Assistant.",
+        "agent_failed": "Conversation-agent faalde: {err}",
+        "no_agent_response": "Geen leesbaar antwoord van de agent.",
+    },
+    "en": {
+        "no_name": "No product name given.",
+        "unreadable_json": "Could not read the AI response: {err}",
+        "no_json": "The AI didn't return usable JSON.",
+        "openai_error": "OpenAI error ({status}): {body}",
+        "openai_unreachable": "OpenAI unreachable: {err}",
+        "unexpected_response": "Unexpected OpenAI response.",
+        "no_ai": "No AI available. Set a conversation agent or an OpenAI key in "
+        "Fridge Assistant's settings.",
+        "no_agent": "No suitable AI agent found. Add an LLM conversation agent "
+        "(e.g. OpenAI) or fill in an OpenAI key in Fridge Assistant's settings.",
+        "agent_failed": "Conversation agent failed: {err}",
+        "no_agent_response": "No readable response from the agent.",
+    },
+}
+
+
+def _t(lang: str, key: str, **kwargs: Any) -> str:
+    return localized(_STRINGS, lang, key, **kwargs)
+
 
 # Instructions are in English (most reliable for LLMs); only the free-text
 # "notes" tip is asked in the user's own language so it fits the UI.
@@ -93,7 +132,7 @@ def _pick_conversation_agent(hass: HomeAssistant) -> str | None:
     return candidates[0] if candidates else None
 
 
-def _extract_json(text: str) -> dict[str, Any]:
+def _extract_json(text: str, lang: str) -> dict[str, Any]:
     text = text.strip()
     # Strip ```json ... ``` fences if present.
     if text.startswith("```"):
@@ -107,8 +146,8 @@ def _extract_json(text: str) -> dict[str, Any]:
         try:
             return json.loads(match.group(0))
         except ValueError as err:
-            raise AIEstimateError(f"Kon AI-antwoord niet lezen: {err}") from err
-    raise AIEstimateError("AI gaf geen bruikbaar JSON-antwoord.")
+            raise AIEstimateError(_t(lang, "unreadable_json", err=err)) from err
+    raise AIEstimateError(_t(lang, "no_json"))
 
 
 def _coerce_days(value: Any) -> int | None:
@@ -156,7 +195,7 @@ async def async_estimate(
 ) -> dict[str, Any]:
     """Estimate shelf life for ``name``. Prefers a direct OpenAI key, else agent."""
     if not name or not name.strip():
-        raise AIEstimateError("Geen productnaam opgegeven.")
+        raise AIEstimateError(_t(resolve_language(hass), "no_name"))
     name = name.strip()
 
     api_key = (options.get(CONF_OPENAI_KEY) or "").strip()
@@ -185,6 +224,7 @@ async def _openai_request(
 async def _estimate_openai(
     hass: HomeAssistant, name: str, api_key: str, options: dict[str, Any]
 ) -> dict[str, Any]:
+    lang = resolve_language(hass)
     session = async_get_clientsession(hass)
     model = options.get(CONF_OPENAI_MODEL) or DEFAULT_OPENAI_MODEL
     payload = {
@@ -210,28 +250,26 @@ async def _estimate_openai(
                 payload.pop("temperature")
                 status, body = await _openai_request(session, api_key, payload)
         if status != 200:
-            raise AIEstimateError(f"OpenAI-fout ({status}): {body[:200]}")
+            raise AIEstimateError(_t(lang, "openai_error", status=status, body=body[:200]))
         data = json.loads(body)
     except AIEstimateError:
         raise
     except Exception as err:  # noqa: BLE001 - surface any network error to the UI
-        raise AIEstimateError(f"OpenAI onbereikbaar: {err}") from err
+        raise AIEstimateError(_t(lang, "openai_unreachable", err=err)) from err
 
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError) as err:
-        raise AIEstimateError("Onverwacht OpenAI-antwoord.") from err
-    return _normalize(name, _extract_json(content))
+        raise AIEstimateError(_t(lang, "unexpected_response")) from err
+    return _normalize(name, _extract_json(content, lang))
 
 
 async def _estimate_conversation(
     hass: HomeAssistant, name: str, options: dict[str, Any]
 ) -> dict[str, Any]:
+    lang = resolve_language(hass)
     if not hass.services.has_service("conversation", "process"):
-        raise AIEstimateError(
-            "Geen AI beschikbaar. Stel een conversation-agent of OpenAI-key in bij de "
-            "instellingen van Fridge Assistant."
-        )
+        raise AIEstimateError(_t(lang, "no_ai"))
     service_data: dict[str, Any] = {
         "text": _SYSTEM_PROMPT + "\n\n" + _user_prompt(hass, name)
     }
@@ -239,11 +277,7 @@ async def _estimate_conversation(
     if not agent:
         agent = _pick_conversation_agent(hass) or ""
     if not agent:
-        raise AIEstimateError(
-            "Geen geschikte AI-agent gevonden. Voeg een LLM conversation-agent toe "
-            "(bijv. OpenAI) of vul een OpenAI-key in bij de instellingen van Fridge "
-            "Assistant."
-        )
+        raise AIEstimateError(_t(lang, "no_agent"))
     service_data["agent_id"] = agent
 
     try:
@@ -255,10 +289,10 @@ async def _estimate_conversation(
             return_response=True,
         )
     except Exception as err:  # noqa: BLE001
-        raise AIEstimateError(f"Conversation-agent faalde: {err}") from err
+        raise AIEstimateError(_t(lang, "agent_failed", err=err)) from err
 
     try:
         text = resp["response"]["speech"]["plain"]["speech"]
     except (KeyError, TypeError) as err:
-        raise AIEstimateError("Geen leesbaar antwoord van de agent.") from err
-    return _normalize(name, _extract_json(text))
+        raise AIEstimateError(_t(lang, "no_agent_response")) from err
+    return _normalize(name, _extract_json(text, lang))

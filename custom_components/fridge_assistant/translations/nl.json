@@ -55,6 +55,17 @@
         "eaten": "Opgegeten",
         "tossed": "Weggegooid"
       }
+    },
+    "warn_days": {
+      "unit_of_measurement": {
+        "days": "dagen"
+      }
+    },
+    "code_format": {
+      "options": {
+        "letters_first": "Letters eerst (AB12)",
+        "digits_first": "Cijfers eerst (12AB)"
+      }
     }
   },
   "services": {
