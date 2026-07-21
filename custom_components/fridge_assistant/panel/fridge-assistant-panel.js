@@ -498,6 +498,7 @@ class FridgeAssistantPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._state = null;
     this._filterLoc = "all";
+    this._filterKind = "all";
     this._search = "";
     this._unsub = null;
     this._shellBuilt = false;
@@ -667,24 +668,46 @@ class FridgeAssistantPanel extends HTMLElement {
   }
 
   _renderFilters() {
-    const { locations, counts } = this._state;
+    const { locations, counts, kinds } = this._state;
     const el = this.shadowRoot.getElementById("filters");
-    const chip = (key, label, count) =>
+    const locChip = (key, label, count) =>
       `<button class="chip ${this._filterLoc === key ? "active" : ""}" data-loc="${key}">${label} <span class="chip-n">${count}</span></button>`;
-    let html = chip("all", this.t("all"), counts.total);
+    let html = locChip("all", this.t("all"), counts.total);
     for (const loc of locations) {
       const m = this._locMeta(loc);
-      html += chip(loc, `${m.emoji || ""} ${m.label || loc}`, counts.by_location[loc] || 0);
+      html += locChip(loc, `${m.emoji || ""} ${m.label || loc}`, counts.by_location[loc] || 0);
     }
+
+    const kindKeys = Object.keys(kinds || {});
+    if (kindKeys.length) {
+      const kindCounts = {};
+      for (const i of this._state.items) {
+        const k = this._kindOf(i);
+        kindCounts[k] = (kindCounts[k] || 0) + 1;
+      }
+      const kindChip = (key, label, count) =>
+        `<button class="chip ${this._filterKind === key ? "active" : ""}" data-kind="${key}">${label} <span class="chip-n">${count}</span></button>`;
+      html += `<span class="chip-sep"></span>`;
+      html += kindChip("all", this.t("all"), counts.total);
+      for (const k of kindKeys) {
+        const km = this._kindMeta(k);
+        html += kindChip(k, `${km.emoji || ""} ${km.short || km.label}`, kindCounts[k] || 0);
+      }
+    }
+
     el.innerHTML = html;
-    el.querySelectorAll(".chip").forEach((b) =>
+    el.querySelectorAll("[data-loc]").forEach((b) =>
       b.addEventListener("click", () => { this._filterLoc = b.dataset.loc; this._renderFilters(); this._renderList(); })
+    );
+    el.querySelectorAll("[data-kind]").forEach((b) =>
+      b.addEventListener("click", () => { this._filterKind = b.dataset.kind; this._renderFilters(); this._renderList(); })
     );
   }
 
   _filteredItems() {
     let items = this._state.items.slice();
     if (this._filterLoc !== "all") items = items.filter((i) => i.location === this._filterLoc);
+    if (this._filterKind !== "all") items = items.filter((i) => this._kindOf(i) === this._filterKind);
     const q = this._search.trim().toLowerCase();
     if (q) items = items.filter((i) =>
       (i.name || "").toLowerCase().includes(q) ||
@@ -714,7 +737,7 @@ class FridgeAssistantPanel extends HTMLElement {
     // Urgency strip (expired + soon), only in "all" view without search.
     const urgent = this._state.items.filter((i) => i.status === "expired" || i.status === "soon");
     let html = "";
-    if (this._filterLoc === "all" && !this._search && urgent.length) {
+    if (this._filterLoc === "all" && this._filterKind === "all" && !this._search && urgent.length) {
       const kinds = this._state.kinds || {};
       const order = Object.keys(kinds).length ? Object.keys(kinds) : ["ingredient", "gerecht"];
       const groups = order
@@ -1889,6 +1912,7 @@ const STYLES = `
 .chip.active{background:var(--fa-accent);color:#fff;border-color:var(--fa-accent);}
 .chip-n{opacity:.6;font-size:12px;margin-left:2px;}
 .chip.active .chip-n{opacity:.85;}
+.chip-sep{width:1px;flex:none;background:var(--fa-border);margin:4px 2px;}
 
 .btn{border:none;border-radius:12px;padding:0 16px;height:40px;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.15s;}
 .btn.small{height:40px;padding:0 13px;font-size:14px;}
