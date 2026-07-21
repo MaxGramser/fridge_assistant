@@ -1665,39 +1665,52 @@ class FridgeAssistantPanel extends HTMLElement {
       }
     } catch (e) { /* getCapabilities unsupported (e.g. older iOS) — no flashlight button */ }
 
-    // Decode a cropped + upscaled canvas matching the visible .scan-frame overlay,
-    // instead of the raw video frame: lets you back off to a distance the camera
-    // can actually focus at while the barcode still fills the decoder's view.
-    const crop = document.createElement("canvas");
-    crop.width = 960; crop.height = 460;
-    const cropCtx = crop.getContext("2d", { willReadFrequently: true });
-    const det = bd ? await this._makeDetector() : null;
-    if (!bd) {
+    if (bd) {
+      // Android/Chromium: native detector on the full frame (proven path).
+      const det = await this._makeDetector();
+      const tick = async () => {
+        if (stopped || !video.isConnected) { stop(); return; }
+        try {
+          const codes = await det.detect(video);
+          if (codes && codes.length) { handle(codes[0].rawValue); return; }
+        } catch (e) { /* transient decode error */ }
+        if (!stopped) timer = setTimeout(tick, 170);
+      };
+      tick();
+    } else {
+      // iOS etc.: ZXing. Decode a native-resolution crop of the .scan-frame
+      // region so you can back off to a focusable distance while the barcode
+      // still fills the decoder's view. reader.decode(canvas) is broken in this
+      // bundle (it reads canvas.naturalWidth → undefined), so build the
+      // BinaryBitmap by hand from our own canvas.
       const hints = new Map();
       hints.set(zxing.DecodeHintType.TRY_HARDER, true);
       reader = new zxing.BrowserMultiFormatReader(hints);
-    }
-    const tick = async () => {
-      if (stopped || !video.isConnected) { stop(); return; }
-      if (video.videoWidth) {
+      const crop = document.createElement("canvas");
+      const cropCtx = crop.getContext("2d", { willReadFrequently: true });
+      const decodeCrop = () => {
+        const source = new zxing.HTMLCanvasElementLuminanceSource(crop);
+        const bitmap = new zxing.BinaryBitmap(new zxing.HybridBinarizer(source));
+        return reader.decodeBitmap(bitmap);   // throws NotFoundException if none
+      };
+      const tick = async () => {
+        if (stopped || !video.isConnected) { stop(); return; }
         const vw = video.videoWidth, vh = video.videoHeight;
-        const sx = vw * 0.08, sy = vh * 0.30, sw = vw * 0.84, sh = vh * 0.40;
-        cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
-        try {
-          if (bd) {
-            const codes = await det.detect(crop);
-            if (codes && codes.length) { handle(codes[0].rawValue); return; }
-          } else {
-            try {
-              const result = reader.decode(crop);
-              if (result) { handle(result.getText()); return; }
-            } catch (e) { /* no barcode in this frame */ }
-          }
-        } catch (e) { /* transient decode error */ }
-      }
-      if (!stopped) timer = setTimeout(tick, 170);
-    };
-    tick();
+        if (vw && vh) {
+          const sx = Math.round(vw * 0.08), sy = Math.round(vh * 0.30);
+          const sw = Math.round(vw * 0.84), sh = Math.round(vh * 0.40);
+          if (crop.width !== sw) crop.width = sw;
+          if (crop.height !== sh) crop.height = sh;
+          cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+          try {
+            const result = decodeCrop();
+            if (result) { handle(result.getText()); return; }
+          } catch (e) { /* no barcode in this frame */ }
+        }
+        if (!stopped) timer = setTimeout(tick, 150);
+      };
+      tick();
+    }
   }
 
   _onScan(raw, h) {
