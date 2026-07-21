@@ -1,5 +1,9 @@
 # Fridge Assistant
 
-Inventaris voor je koelkast, vriezer en voorraadkast. Houd bij wat er ligt, sinds wanneer, en wat als eerste op moet — met automatische houdbaarheid, AI-schattingen en sticker-labels.
+Inventory for your fridge, freezer and pantry. Track what's there, since when, and what to eat first —
+with automatic expiry estimation, AI shelf-life estimates, barcode scanning, and printable stickers.
 
-Na installatie: herstart Home Assistant, voeg de integratie toe via *Instellingen → Apparaten & Services*, en open **Koelkast** in de zijbalk.
+**Note:** the panel UI is currently Dutch-only, regardless of your Home Assistant language.
+
+After installing: restart Home Assistant, add the integration via *Settings → Devices & Services*,
+then open **Koelkast** in the sidebar.
