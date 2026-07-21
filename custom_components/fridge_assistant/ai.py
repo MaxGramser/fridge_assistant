@@ -170,6 +170,18 @@ async def async_estimate(
     return result
 
 
+async def _openai_request(
+    session, api_key: str, payload: dict[str, Any]
+) -> tuple[int, str]:
+    async with session.post(
+        OPENAI_URL,
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=payload,
+        timeout=30,
+    ) as resp:
+        return resp.status, await resp.text()
+
+
 async def _estimate_openai(
     hass: HomeAssistant, name: str, api_key: str, options: dict[str, Any]
 ) -> dict[str, Any]:
@@ -185,16 +197,21 @@ async def _estimate_openai(
         "response_format": {"type": "json_object"},
     }
     try:
-        async with session.post(
-            OPENAI_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
-            json=payload,
-            timeout=30,
-        ) as resp:
-            if resp.status != 200:
-                body = await resp.text()
-                raise AIEstimateError(f"OpenAI-fout ({resp.status}): {body[:200]}")
-            data = await resp.json()
+        status, body = await _openai_request(session, api_key, payload)
+        # Reasoning-style models (o1/o3/gpt-5, ...) reject any non-default
+        # temperature. Retry once without it rather than hardcoding a model
+        # name list that would always be out of date.
+        if status == 400 and "temperature" in payload:
+            try:
+                err_param = json.loads(body).get("error", {}).get("param")
+            except ValueError:
+                err_param = None
+            if err_param == "temperature":
+                payload.pop("temperature")
+                status, body = await _openai_request(session, api_key, payload)
+        if status != 200:
+            raise AIEstimateError(f"OpenAI-fout ({status}): {body[:200]}")
+        data = json.loads(body)
     except AIEstimateError:
         raise
     except Exception as err:  # noqa: BLE001 - surface any network error to the UI
