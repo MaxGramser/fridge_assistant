@@ -20,6 +20,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .ai import AIEstimateError, async_estimate
 from .const import (
+    ACTION_TOSSED,
     CONF_AI_ENABLED,
     DOMAIN,
     EVENT_ITEM_ADDED,
@@ -217,11 +218,20 @@ def async_setup_services(hass: HomeAssistant) -> None:
         return {"event": event}
 
     async def handle_remove_expired(call: ServiceCall) -> ServiceResponse:
+        # Same behaviour as the panel's clean-up mode: completing as "tossed"
+        # keeps a history record of what was thrown out and by whom, instead
+        # of deleting silently.
         runtime = _get_runtime(hass)
+        by = by_name = None
+        if call.context.user_id:
+            user = await hass.auth.async_get_user(call.context.user_id)
+            if user:
+                by, by_name = user.id, user.name
         removed = []
         for item in runtime.store.expired_items():
-            if runtime.store.remove_item(item["id"]):
-                removed.append(item)
+            event = runtime.store.complete_item(item["id"], ACTION_TOSSED, by, by_name)
+            if event is not None:
+                removed.append(event["item"])
         if removed:
             await runtime.async_changed()
         return {"removed": removed, "count": len(removed)}

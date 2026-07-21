@@ -61,6 +61,9 @@ DEFAULT_CATEGORY: Final = "other"
 DEFAULT_EMOJI: Final = "🍽️"
 DEFAULT_ICON: Final = "mdi:food-variant"
 
+# Fallback item name when neither a name nor contents was given.
+UNKNOWN_ITEM_NAME: Final = {"nl": "Onbekend", "en": "Unknown"}
+
 # Two top-level groups every template belongs to.
 KIND_INGREDIENT: Final = "ingredient"
 KIND_DISH: Final = "dish"

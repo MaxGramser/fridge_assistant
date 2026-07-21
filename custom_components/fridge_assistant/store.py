@@ -34,9 +34,11 @@ from .const import (
     SOURCE_TEMPLATE,
     STORAGE_KEY,
     STORAGE_VERSION,
+    UNKNOWN_ITEM_NAME,
     canonical_category,
     canonical_kind,
     canonical_location,
+    resolve_language,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -421,7 +423,11 @@ class FridgeStore:
         item = {
             "id": uuid.uuid4().hex,
             "code": generate_code((i["code"] for i in self.items.values()), code_format),
-            "name": (data.get("name") or data.get("contents") or "Onbekend").strip(),
+            "name": (
+                data.get("name")
+                or data.get("contents")
+                or UNKNOWN_ITEM_NAME[resolve_language(self.hass)]
+            ).strip(),
             "contents": (data.get("contents") or "").strip(),
             "location": location,
             "category": canonical_category(data.get("category"))

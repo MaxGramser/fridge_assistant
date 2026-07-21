@@ -802,18 +802,51 @@ class FridgeAssistantPanel extends HTMLElement {
   }
 
   /* --------------------------------------------------------------- modals */
+  /* The page behind the sheet scrolls in an ancestor outside our shadow root
+     (the document), so opening a modal locks it there; a counter handles
+     stacked modals (add-item -> template picker). On iOS, touch scrolling
+     ignores body overflow, so the overlay also blocks touchmove unless the
+     gesture happens inside something scrollable within the modal. */
+  _lockBackgroundScroll() {
+    this._modalCount = (this._modalCount || 0) + 1;
+    if (this._modalCount === 1) {
+      this._savedBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+  }
+
+  _unlockBackgroundScroll() {
+    this._modalCount = Math.max(0, (this._modalCount || 0) - 1);
+    if (this._modalCount === 0) {
+      document.body.style.overflow = this._savedBodyOverflow || "";
+    }
+  }
+
   _openModal(innerHTML, { wide = false } = {}) {
     const root = this.shadowRoot.getElementById("modal-root");
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.innerHTML = `<div class="modal ${wide ? "wide" : ""}" role="dialog">${innerHTML}</div>`;
     root.appendChild(overlay);
+    this._lockBackgroundScroll();
     requestAnimationFrame(() => overlay.classList.add("show"));
+    let closed = false;
     const close = () => {
+      if (closed) return;
+      closed = true;
+      this._unlockBackgroundScroll();
       overlay.classList.remove("show");
       setTimeout(() => overlay.remove(), 180);
     };
     overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener("touchmove", (e) => {
+      let el = e.target;
+      while (el && el !== overlay) {
+        if (el.scrollHeight > el.clientHeight + 1) return; // scrollable inside the modal
+        el = el.parentElement;
+      }
+      e.preventDefault(); // nothing to scroll here -> don't let the page take it
+    }, { passive: false });
     const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
     document.addEventListener("keydown", onKey);
     return { overlay, modal: overlay.querySelector(".modal"), close };
@@ -2013,7 +2046,7 @@ const STYLES = `
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .18s;z-index:50;padding:0;}
 .overlay.show{opacity:1;}
 @media(min-width:640px){.overlay{align-items:center;padding:24px;}}
-.modal{background:var(--fa-card);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;border-radius:22px 22px 0 0;padding:18px;transform:translateY(24px);transition:transform .2s;box-shadow:0 -10px 40px rgba(0,0,0,.2);}
+.modal{background:var(--fa-card);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;overscroll-behavior:contain;border-radius:22px 22px 0 0;padding:18px;transform:translateY(24px);transition:transform .2s;box-shadow:0 -10px 40px rgba(0,0,0,.2);}
 .modal.wide{max-width:600px;}
 @media(min-width:640px){.modal{border-radius:22px;transform:translateY(12px) scale(.98);}}
 .overlay.show .modal{transform:none;}
@@ -2033,9 +2066,9 @@ const STYLES = `
 
 .field{display:flex;flex-direction:column;gap:5px;margin:10px 0;}
 .field>span{font-size:13px;color:var(--fa-muted);font-weight:500;}
-.field input{height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);outline:none;transition:.15s;}
+.field input{min-width:0;width:100%;box-sizing:border-box;height:44px;border:1.5px solid var(--fa-border);border-radius:12px;padding:0 14px;font-size:16px;background:var(--fa-bg);color:var(--fa-text);outline:none;transition:.15s;}
 .field input:focus{border-color:var(--fa-accent);box-shadow:0 0 0 4px rgba(0,122,255,.1);}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
 .expiry-hint{font-size:13px;font-weight:600;min-height:18px;margin:-2px 2px 4px;}
 
 .seg{display:flex;gap:6px;background:var(--fa-bg);border-radius:12px;padding:4px;margin:12px 0;}
@@ -2067,7 +2100,7 @@ const STYLES = `
 .modal-actions .btn{flex:1;}
 .modal-actions.three .btn{font-size:14px;padding:0 8px;}
 
-.tp-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;}
+.tp-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;overscroll-behavior:contain;}
 .tp-item{display:flex;align-items:center;gap:12px;background:var(--fa-bg);border:1px solid transparent;border-radius:12px;padding:10px;cursor:pointer;text-align:left;color:var(--fa-text);}
 .tp-item:hover{border-color:var(--fa-accent);}
 .tp-emoji{font-size:24px;width:34px;text-align:center;}
