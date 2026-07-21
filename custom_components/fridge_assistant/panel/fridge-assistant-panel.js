@@ -802,51 +802,35 @@ class FridgeAssistantPanel extends HTMLElement {
   }
 
   /* --------------------------------------------------------------- modals */
-  /* The page behind the sheet scrolls in an ancestor outside our shadow root
-     (the document), so opening a modal locks it there; a counter handles
-     stacked modals (add-item -> template picker). On iOS, touch scrolling
-     ignores body overflow, so the overlay also blocks touchmove unless the
-     gesture happens inside something scrollable within the modal. */
-  _lockBackgroundScroll() {
-    this._modalCount = (this._modalCount || 0) + 1;
-    if (this._modalCount === 1) {
-      this._savedBodyOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-    }
-  }
-
-  _unlockBackgroundScroll() {
-    this._modalCount = Math.max(0, (this._modalCount || 0) - 1);
-    if (this._modalCount === 0) {
-      document.body.style.overflow = this._savedBodyOverflow || "";
-    }
-  }
-
   _openModal(innerHTML, { wide = false } = {}) {
     const root = this.shadowRoot.getElementById("modal-root");
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.innerHTML = `<div class="modal ${wide ? "wide" : ""}" role="dialog">${innerHTML}</div>`;
     root.appendChild(overlay);
-    this._lockBackgroundScroll();
     requestAnimationFrame(() => overlay.classList.add("show"));
-    let closed = false;
     const close = () => {
-      if (closed) return;
-      closed = true;
-      this._unlockBackgroundScroll();
       overlay.classList.remove("show");
       setTimeout(() => overlay.remove(), 180);
     };
     overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(); });
-    overlay.addEventListener("touchmove", (e) => {
+    // Keep scroll/pull-to-refresh gestures from reaching the page behind the
+    // sheet. Deliberately NOT done by touching document.body (the companion
+    // app relies on body scrollability for pull-to-refresh, and a global
+    // lock can stick if an overlay is ever removed outside close()); the
+    // overlay covers the whole viewport, so containing the gestures here is
+    // enough and holds no global state. Gestures inside a scrollable part of
+    // the modal scroll natively; overscroll-behavior stops the chaining.
+    const containScroll = (e) => {
       let el = e.target;
       while (el && el !== overlay) {
-        if (el.scrollHeight > el.clientHeight + 1) return; // scrollable inside the modal
+        if (el.scrollHeight > el.clientHeight + 1) return;
         el = el.parentElement;
       }
-      e.preventDefault(); // nothing to scroll here -> don't let the page take it
-    }, { passive: false });
+      e.preventDefault();
+    };
+    overlay.addEventListener("touchmove", containScroll, { passive: false });
+    overlay.addEventListener("wheel", containScroll, { passive: false });
     const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
     document.addEventListener("keydown", onKey);
     return { overlay, modal: overlay.querySelector(".modal"), close };
