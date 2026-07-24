@@ -69,8 +69,8 @@ const STRINGS = {
 
     emptyTitle: "Nog niets in de koelkast",
     emptySub: "Voeg je eerste item toe — houdbaarheid wordt automatisch geschat.",
-    addItemBtn: "＋ Item toevoegen",
-    useFirst: "⏰ Als eerste op",
+    addItemBtn: '<ha-icon icon="mdi:plus"></ha-icon> Item toevoegen',
+    useFirst: '<ha-icon icon="mdi:clock-alert-outline"></ha-icon> Als eerste op',
     nothingFound: "Niets gevonden.",
     printSticker: "Print sticker",
 
@@ -90,10 +90,10 @@ const STRINGS = {
     notesLabel: "Notitie",
     photoUrlLabel: "Foto-URL (optioneel)",
     photoUrlPlaceholder: "https://…",
-    chooseTemplateBtn: "📚 Template kiezen",
+    chooseTemplateBtn: '<ha-icon icon="mdi:book-multiple"></ha-icon> Template kiezen',
     saveBtn: "Opslaan",
     addBtn: "Toevoegen",
-    aiEstimateMini: "✨ AI schat",
+    aiEstimateMini: '<ha-icon icon="mdi:creation"></ha-icon> AI schat',
     unknownProduct: "Onbekend product",
     noTemplateFor: (q, aiEnabled) =>
       `Nog geen template voor "${q}" — vul zelf een datum in${aiEnabled ? " of laat AI schatten" : ""}.`,
@@ -106,7 +106,7 @@ const STRINGS = {
     manualEntry: "Handmatig invullen",
     savedToast: "Opgeslagen ✓",
     addedToast: (code) => `Toegevoegd ✓ ${code ? "code " + code : ""}`,
-    printActionLabel: "🏷️ Print",
+    printActionLabel: "Print",
     errorPrefix: "Fout: ",
 
     aiThinking: "✨ AI denkt na…",
@@ -116,17 +116,17 @@ const STRINGS = {
     aiHint: "Klopt niet helemaal? Tik een dag-getal aan en pas het aan 👇",
     saveAsTemplateLabel: "Bewaar (met jouw aanpassingen) als template",
 
-    pickTemplateTitle: "📚 Kies een template",
+    pickTemplateTitle: "Kies een template",
     searchInTemplates: (n) => `Zoek in ${n} templates…`,
     ownSuffix: " · eigen",
 
-    templatesTitle: "📚 Templates",
+    templatesTitle: "Templates",
     templateWithAiTitle: "Template met AI",
     newTemplateTitleIcon: "Nieuwe template",
     hiddenTemplatesTitle: "Verborgen standaard-templates",
     searchOrFilterPlaceholder: "Zoek of filter…",
     nothingHidden: "Niets verborgen.",
-    backBtn: "↩︎ Terug",
+    backBtn: '<ha-icon icon="mdi:undo-variant"></ha-icon> Terug',
     restoredToast: "Teruggezet ✓",
     nothingInGroup: "Niets in deze groep.",
     customizedBadge: "aangepast",
@@ -135,7 +135,7 @@ const STRINGS = {
     templateWithAiSub: "Typ een product; AI schat de houdbaarheid, jij past aan.",
     productOrDishLabel: "Product of gerecht",
     productOrDishPlaceholder: "bv. zelfgemaakte curry",
-    estimateWithAiBtn: "✨ Schat met AI",
+    estimateWithAiBtn: '<ha-icon icon="mdi:creation"></ha-icon> Schat met AI',
     aiErrorPrefix: "AI: ",
 
     newTemplateHeading: "Nieuwe template",
@@ -153,9 +153,9 @@ const STRINGS = {
     aliasesPlaceholder: "pasta bolognese, spaghetti",
     notesTipLabel: "Notitie / bewaartip",
     notesTipPlaceholder: "Laat afkoelen voor invriezen",
-    restoreDefaultBtn: "↺ Herstel",
-    builtinRemoveBtn: "🙈 Verwijder",
-    customRemoveBtn: "🗑 Verwijder",
+    restoreDefaultBtn: '<ha-icon icon="mdi:restore"></ha-icon> Herstel',
+    builtinRemoveBtn: '<ha-icon icon="mdi:eye-off-outline"></ha-icon> Verwijder',
+    customRemoveBtn: '<ha-icon icon="mdi:delete-outline"></ha-icon> Verwijder',
     templateAddedToast: "Template toegevoegd ✓",
     templateSavedToast: "Template opgeslagen ✓",
     restoredDefaultToast: "Hersteld naar standaard ✓",
@@ -167,10 +167,10 @@ const STRINGS = {
     contentsLabel: "Inhoud",
     dateInDetailLabel: "Erin gelegd",
     daysAgoShort: (n) => `${n} dg geleden`,
-    stickerBtn: "🏷️ Sticker",
-    editBtn: "✏️ Bewerken",
-    eatenBtn: "🍽️ Opgegeten",
-    tossedBtn: "🗑️ Weggegooid",
+    stickerBtn: '<ha-icon icon="mdi:tag-outline"></ha-icon> Sticker',
+    editBtn: '<ha-icon icon="mdi:pencil-outline"></ha-icon> Bewerken',
+    eatenBtn: '<ha-icon icon="mdi:silverware-fork-knife"></ha-icon> Opgegeten',
+    tossedBtn: '<ha-icon icon="mdi:delete-outline"></ha-icon> Weggegooid',
 
     undoLabel: "Ongedaan",
     completedToast: (emoji, name, eaten) => `${emoji} ${name} ${eaten ? "opgegeten" : "weggegooid"}`,
@@ -180,7 +180,7 @@ const STRINGS = {
     couldNotEatRetry: "Kon niet opeten — probeer opnieuw",
     eatenStatusCount: (name, n) => `🍽️ ${name} opgegeten (${n})`,
 
-    cleanUpTitle: "🧹 Koelkast opruimen",
+    cleanUpTitle: "Koelkast opruimen",
     expiredSection: "Over datum",
     soonSection: "Bijna over datum",
     allGoodMessage: "Alles is nog goed!",
@@ -189,12 +189,12 @@ const STRINGS = {
     nothingSelected: "Niets geselecteerd",
     cleanedUpToast: (n) => `🧹 ${n} item${n === 1 ? "" : "s"} opgeruimd`,
 
-    scanTitle: "📷 Scan",
+    scanTitle: "Scan",
     scanSub: "Je koelkast-label om te zoeken, of een winkelbarcode",
-    searchModeBtn: "🔎 Zoeken",
-    eatModeBtn: "🍽️ Opeten",
-    photoBtn: "📸 Foto",
-    typeCodeBtn: "⌨️ Code typen",
+    searchModeBtn: '<ha-icon icon="mdi:magnify"></ha-icon> Zoeken',
+    eatModeBtn: '<ha-icon icon="mdi:silverware-fork-knife"></ha-icon> Opeten',
+    photoBtn: '<ha-icon icon="mdi:camera"></ha-icon> Foto',
+    typeCodeBtn: '<ha-icon icon="mdi:keyboard-outline"></ha-icon> Code typen',
     eatModeStatus: "🍽️ Scan je labels — elk item wordt meteen opgegeten",
     aimAtBarcode: "Richt op de barcode…",
     codeInputPlaceholder: "Code, bv. AB12",
@@ -202,12 +202,12 @@ const STRINGS = {
     readingPhoto: "Foto lezen…",
     noBarcodeFound: "Geen barcode gevonden — probeer dichterbij en scherp.",
     takePhotoOfBarcode: "Maak een foto van de barcode 📸",
-    liveScanUnavailable: "Live scannen kan niet op dit toestel. Typ de code ⌨️.",
-    noCameraAccess: "Geen camera-toegang. Gebruik 📸 Foto of ⌨️ Code.",
+    liveScanUnavailable: "Live scannen kan niet op dit toestel. Typ de code.",
+    noCameraAccess: "Geen camera-toegang. Gebruik Foto of Code typen.",
     torchTooltip: "Zaklamp",
 
     foundToast: (name) => `🔎 ${name} gevonden`,
-    noActiveItemHistoryHint: (val) => `Geen actief item met code ${val} — misschien al opgegeten/weggegooid (📜)`,
+    noActiveItemHistoryHint: (val) => `Geen actief item met code ${val} — misschien al opgegeten/weggegooid (zie Geschiedenis)`,
     unknownCode: (val) => `Onbekende code: ${val}`,
 
     lookingUpProduct: (code) => `🔎 Product opzoeken… (${code})`,
@@ -223,7 +223,7 @@ const STRINGS = {
     daysAgo: (d) => `${d} dagen geleden`,
 
     restoreToFridgeTitle: "Terugzetten in de koelkast",
-    historyHeading: "📜 Geschiedenis",
+    historyHeading: "Geschiedenis",
     loadMoreBtn: "Meer laden",
     historyLoadFailed: "Kon geschiedenis niet laden.",
     historyEmpty: "Nog niets opgegeten of weggegooid.",
@@ -234,15 +234,15 @@ const STRINGS = {
     printerOnNote: (label, size, copies) =>
       `Label <b>${label}</b> (${size}, getest) · printer automatisch gedetecteerd. Print ${copies}× per keer.`,
     printerOffNote: (label, size) =>
-      `Label <b>${label}</b> (${size}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij ⚙️ instellingen.`,
-    printStickerModalTitle: "🏷️ Sticker printen",
+      `Label <b>${label}</b> (${size}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij de instellingen.`,
+    printStickerModalTitle: "Sticker printen",
     previewLoading: "Voorbeeld laden…",
     closeBtn: "Sluiten",
-    printBtnLabel: (copies) => `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`,
+    printBtnLabel: (copies) => `<ha-icon icon="mdi:printer"></ha-icon> Print${copies > 1 ? ` (${copies}×)` : ""}`,
     previewUnavailable: (err) => `Voorbeeld niet beschikbaar: ${err}`,
     workingLabel: "Bezig…",
     stickerPrintedToast: (code, copies) => `🖨️ Sticker ${code} geprint${copies > 1 ? ` (${copies}×)` : ""}`,
-    printerDisabledReason: "Printer staat uit — zet 'm aan bij ⚙️ instellingen.",
+    printerDisabledReason: "Printer staat uit — zet 'm aan bij de instellingen.",
     printerUnreachableReason: "Label Printer add-on niet bereikbaar. Staat de add-on aan?",
     printerNotConnectedReason: "De DYMO is niet gevonden. Check kabel/stroom en herstart de add-on.",
     renderFailedReason: "Label renderen mislukte.",
@@ -268,8 +268,8 @@ const STRINGS = {
 
     emptyTitle: "Nothing in the fridge yet",
     emptySub: "Add your first item — expiry is estimated automatically.",
-    addItemBtn: "＋ Add item",
-    useFirst: "⏰ Use first",
+    addItemBtn: '<ha-icon icon="mdi:plus"></ha-icon> Add item',
+    useFirst: '<ha-icon icon="mdi:clock-alert-outline"></ha-icon> Use first',
     nothingFound: "Nothing found.",
     printSticker: "Print sticker",
 
@@ -289,10 +289,10 @@ const STRINGS = {
     notesLabel: "Note",
     photoUrlLabel: "Photo URL (optional)",
     photoUrlPlaceholder: "https://…",
-    chooseTemplateBtn: "📚 Choose template",
+    chooseTemplateBtn: '<ha-icon icon="mdi:book-multiple"></ha-icon> Choose template',
     saveBtn: "Save",
     addBtn: "Add",
-    aiEstimateMini: "✨ AI estimate",
+    aiEstimateMini: '<ha-icon icon="mdi:creation"></ha-icon> AI estimate',
     unknownProduct: "Unknown product",
     noTemplateFor: (q, aiEnabled) =>
       `No template yet for "${q}" — enter a date yourself${aiEnabled ? " or let AI estimate" : ""}.`,
@@ -305,7 +305,7 @@ const STRINGS = {
     manualEntry: "Manual entry",
     savedToast: "Saved ✓",
     addedToast: (code) => `Added ✓ ${code ? "code " + code : ""}`,
-    printActionLabel: "🏷️ Print",
+    printActionLabel: "Print",
     errorPrefix: "Error: ",
 
     aiThinking: "✨ AI is thinking…",
@@ -315,17 +315,17 @@ const STRINGS = {
     aiHint: "Not quite right? Tap a day count to adjust it 👇",
     saveAsTemplateLabel: "Save (with your edits) as a template",
 
-    pickTemplateTitle: "📚 Choose a template",
+    pickTemplateTitle: "Choose a template",
     searchInTemplates: (n) => `Search ${n} templates…`,
     ownSuffix: " · custom",
 
-    templatesTitle: "📚 Templates",
+    templatesTitle: "Templates",
     templateWithAiTitle: "Template with AI",
     newTemplateTitleIcon: "New template",
     hiddenTemplatesTitle: "Hidden built-in templates",
     searchOrFilterPlaceholder: "Search or filter…",
     nothingHidden: "Nothing hidden.",
-    backBtn: "↩︎ Back",
+    backBtn: '<ha-icon icon="mdi:undo-variant"></ha-icon> Back',
     restoredToast: "Restored ✓",
     nothingInGroup: "Nothing in this group.",
     customizedBadge: "customized",
@@ -334,7 +334,7 @@ const STRINGS = {
     templateWithAiSub: "Type a product; AI estimates shelf life, you adjust it.",
     productOrDishLabel: "Product or dish",
     productOrDishPlaceholder: "e.g. homemade curry",
-    estimateWithAiBtn: "✨ Estimate with AI",
+    estimateWithAiBtn: '<ha-icon icon="mdi:creation"></ha-icon> Estimate with AI',
     aiErrorPrefix: "AI: ",
 
     newTemplateHeading: "New template",
@@ -352,9 +352,9 @@ const STRINGS = {
     aliasesPlaceholder: "pasta bolognese, spaghetti",
     notesTipLabel: "Note / storage tip",
     notesTipPlaceholder: "Let cool before freezing",
-    restoreDefaultBtn: "↺ Restore",
-    builtinRemoveBtn: "🙈 Remove",
-    customRemoveBtn: "🗑 Remove",
+    restoreDefaultBtn: '<ha-icon icon="mdi:restore"></ha-icon> Restore',
+    builtinRemoveBtn: '<ha-icon icon="mdi:eye-off-outline"></ha-icon> Remove',
+    customRemoveBtn: '<ha-icon icon="mdi:delete-outline"></ha-icon> Remove',
     templateAddedToast: "Template added ✓",
     templateSavedToast: "Template saved ✓",
     restoredDefaultToast: "Restored to default ✓",
@@ -366,10 +366,10 @@ const STRINGS = {
     contentsLabel: "Contents",
     dateInDetailLabel: "Added on",
     daysAgoShort: (n) => `${n}d ago`,
-    stickerBtn: "🏷️ Sticker",
-    editBtn: "✏️ Edit",
-    eatenBtn: "🍽️ Eaten",
-    tossedBtn: "🗑️ Tossed",
+    stickerBtn: '<ha-icon icon="mdi:tag-outline"></ha-icon> Sticker',
+    editBtn: '<ha-icon icon="mdi:pencil-outline"></ha-icon> Edit',
+    eatenBtn: '<ha-icon icon="mdi:silverware-fork-knife"></ha-icon> Eaten',
+    tossedBtn: '<ha-icon icon="mdi:delete-outline"></ha-icon> Tossed',
 
     undoLabel: "Undo",
     completedToast: (emoji, name, eaten) => `${emoji} ${name} ${eaten ? "eaten" : "tossed"}`,
@@ -379,7 +379,7 @@ const STRINGS = {
     couldNotEatRetry: "Couldn't mark as eaten — try again",
     eatenStatusCount: (name, n) => `🍽️ ${name} eaten (${n})`,
 
-    cleanUpTitle: "🧹 Clean up the fridge",
+    cleanUpTitle: "Clean up the fridge",
     expiredSection: "Past date",
     soonSection: "Expiring soon",
     allGoodMessage: "Everything is still good!",
@@ -388,12 +388,12 @@ const STRINGS = {
     nothingSelected: "Nothing selected",
     cleanedUpToast: (n) => `🧹 ${n} item${n === 1 ? "" : "s"} cleaned up`,
 
-    scanTitle: "📷 Scan",
+    scanTitle: "Scan",
     scanSub: "Your fridge label to search, or a retail barcode",
-    searchModeBtn: "🔎 Search",
-    eatModeBtn: "🍽️ Eat",
-    photoBtn: "📸 Photo",
-    typeCodeBtn: "⌨️ Type code",
+    searchModeBtn: '<ha-icon icon="mdi:magnify"></ha-icon> Search',
+    eatModeBtn: '<ha-icon icon="mdi:silverware-fork-knife"></ha-icon> Eat',
+    photoBtn: '<ha-icon icon="mdi:camera"></ha-icon> Photo',
+    typeCodeBtn: '<ha-icon icon="mdi:keyboard-outline"></ha-icon> Type code',
     eatModeStatus: "🍽️ Scan your labels — each item is marked eaten right away",
     aimAtBarcode: "Point at the barcode…",
     codeInputPlaceholder: "Code, e.g. AB12",
@@ -401,12 +401,12 @@ const STRINGS = {
     readingPhoto: "Reading photo…",
     noBarcodeFound: "No barcode found — try closer and in focus.",
     takePhotoOfBarcode: "Take a photo of the barcode 📸",
-    liveScanUnavailable: "Live scanning isn't available on this device. Type the code ⌨️.",
-    noCameraAccess: "No camera access. Use 📸 Photo or ⌨️ Code.",
+    liveScanUnavailable: "Live scanning isn't available on this device. Type the code.",
+    noCameraAccess: "No camera access. Use Photo or Type code.",
     torchTooltip: "Flashlight",
 
     foundToast: (name) => `🔎 ${name} found`,
-    noActiveItemHistoryHint: (val) => `No active item with code ${val} — maybe already eaten/tossed (📜)`,
+    noActiveItemHistoryHint: (val) => `No active item with code ${val} — maybe already eaten/tossed (see History)`,
     unknownCode: (val) => `Unknown code: ${val}`,
 
     lookingUpProduct: (code) => `🔎 Looking up product… (${code})`,
@@ -422,7 +422,7 @@ const STRINGS = {
     daysAgo: (d) => `${d} days ago`,
 
     restoreToFridgeTitle: "Put back in the fridge",
-    historyHeading: "📜 History",
+    historyHeading: "History",
     loadMoreBtn: "Load more",
     historyLoadFailed: "Couldn't load history.",
     historyEmpty: "Nothing eaten or tossed yet.",
@@ -433,15 +433,15 @@ const STRINGS = {
     printerOnNote: (label, size, copies) =>
       `Label <b>${label}</b> (${size}, tested) · printer detected automatically. Prints ${copies}× per tap.`,
     printerOffNote: (label, size) =>
-      `Label <b>${label}</b> (${size}).<br>The printer is off — install the <b>Label Printer</b> add-on and enable it in ⚙️ settings.`,
-    printStickerModalTitle: "🏷️ Print sticker",
+      `Label <b>${label}</b> (${size}).<br>The printer is off — install the <b>Label Printer</b> add-on and enable it in the settings.`,
+    printStickerModalTitle: "Print sticker",
     previewLoading: "Loading preview…",
     closeBtn: "Close",
-    printBtnLabel: (copies) => `🖨️ Print${copies > 1 ? ` (${copies}×)` : ""}`,
+    printBtnLabel: (copies) => `<ha-icon icon="mdi:printer"></ha-icon> Print${copies > 1 ? ` (${copies}×)` : ""}`,
     previewUnavailable: (err) => `Preview unavailable: ${err}`,
     workingLabel: "Working…",
     stickerPrintedToast: (code, copies) => `🖨️ Sticker ${code} printed${copies > 1 ? ` (${copies}×)` : ""}`,
-    printerDisabledReason: "Printer is off — enable it in ⚙️ settings.",
+    printerDisabledReason: "Printer is off — enable it in the settings.",
     printerUnreachableReason: "Label Printer add-on unreachable. Is the add-on running?",
     printerNotConnectedReason: "The DYMO wasn't found. Check cable/power and restart the add-on.",
     renderFailedReason: "Rendering the label failed.",
@@ -610,23 +610,23 @@ class FridgeAssistantPanel extends HTMLElement {
         <header class="topbar">
           <div class="topbar-row">
             <span class="menu-slot" id="menu-slot"></span>
-            <div class="brand"><span class="brand-emoji">🧊</span><h1>${this.t("appTitle")}</h1></div>
+            <div class="brand"><ha-icon class="brand-emoji" icon="mdi:fridge-outline"></ha-icon><h1>${this.t("appTitle")}</h1></div>
             <span class="spacer"></span>
-            <button class="icon-btn" id="btn-history" title="${this.t("historyTooltip", 0)}">📜</button>
-            <button class="icon-btn" id="btn-templates" title="${this.t("manageTemplates")}">📚</button>
-            <button class="icon-btn" id="btn-settings" title="${this.t("settings")}">⚙︎</button>
+            <button class="icon-btn" id="btn-history" title="${this.t("historyTooltip", 0)}"><ha-icon icon="mdi:history"></ha-icon></button>
+            <button class="icon-btn" id="btn-templates" title="${this.t("manageTemplates")}"><ha-icon icon="mdi:book-multiple"></ha-icon></button>
+            <button class="icon-btn" id="btn-settings" title="${this.t("settings")}"><ha-icon icon="mdi:cog-outline"></ha-icon></button>
           </div>
           <div class="counts" id="counts"></div>
           <div class="searchrow">
-            <div class="search"><span>🔍</span><input id="search" placeholder="${this.t("searchPlaceholder")}" autocomplete="off" enterkeyhint="search"></div>
-            <button class="btn ghost icon-only" id="btn-clean" title="${this.t("cleanUp")}">🧹</button>
+            <div class="search"><ha-icon icon="mdi:magnify" style="--mdc-icon-size:18px;color:var(--fa-muted)"></ha-icon><input id="search" placeholder="${this.t("searchPlaceholder")}" autocomplete="off" enterkeyhint="search"></div>
+            <button class="btn ghost icon-only" id="btn-clean" title="${this.t("cleanUp")}"><ha-icon icon="mdi:broom"></ha-icon></button>
           </div>
         </header>
         <nav class="filters" id="filters"></nav>
         <main id="list"><div class="loading">${this.t("loading")}</div></main>
       </div>
-      <button class="fab fab-scan" id="fab-scan" aria-label="${this.t("scanAria")}">📷</button>
-      <button class="fab" id="fab-add" aria-label="${this.t("addItemAria")}">＋</button>
+      <button class="fab fab-scan" id="fab-scan" aria-label="${this.t("scanAria")}"><ha-icon icon="mdi:barcode-scan"></ha-icon></button>
+      <button class="fab" id="fab-add" aria-label="${this.t("addItemAria")}"><ha-icon icon="mdi:plus"></ha-icon></button>
       <div id="modal-root"></div>
       <div id="toast-root"></div>
     `;
@@ -807,7 +807,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="status" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left, lang)}</div>
         <div class="card-when">${i.added_by_name ? `<span class="who" title="${esc(i.added_by_name)}">${this._avatar(i.added_by_name, i.added_by_picture, 15)}</span>` : ""}${i.expiry_date ? `<span>${fmtDate(i.expiry_date, lang)}</span>` : ""}</div>
       </div>
-      <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}">🏷️</button>
+      <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}"><ha-icon icon="mdi:tag-outline"></ha-icon></button>
     </div>`;
   }
 
@@ -861,9 +861,9 @@ class FridgeAssistantPanel extends HTMLElement {
       if (v) {
         const dt = parseISO(v);
         const year = dt && dt.getUTCFullYear() !== thisYear ? ` ${dt.getUTCFullYear()}` : "";
-        disp.innerHTML = `<span class="df-ico">📅</span><b>${fmtDate(v, lang)}${year}</b>`;
+        disp.innerHTML = `<span class="df-ico"><ha-icon icon="mdi:calendar-outline"></ha-icon></span><b>${fmtDate(v, lang)}${year}</b>`;
       } else {
-        disp.innerHTML = `<span class="df-ico">📅</span><span class="df-ph">${esc(placeholder)}</span>`;
+        disp.innerHTML = `<span class="df-ico"><ha-icon icon="mdi:calendar-outline"></ha-icon></span><span class="df-ph">${esc(placeholder)}</span>`;
       }
     };
     // Programmatic writes (suggestions, AI estimates) assign .value directly
@@ -915,7 +915,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="m-title">
           <input class="m-name" id="f-name" placeholder="${this.t("addNamePlaceholder")}" value="${esc(nameVal)}">
         </div>
-        <button class="icon-btn" id="m-close">✕</button>
+        <button class="icon-btn" id="m-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="suggest" id="f-suggest"></div>
       <div class="seg" id="f-loc">
@@ -926,7 +926,7 @@ class FridgeAssistantPanel extends HTMLElement {
       </div>
       <div class="grid2">
         <label class="field"><span>${this.t("dateInFieldLabel")}</span><div class="datefield"><input type="date" id="f-added" value="${m.added}"><span class="df-display"></span></div></label>
-        <label class="field"><span>${this.t("expiryLabel")}</span><div class="datefield"><input type="date" id="f-expiry" value="${m.expiry}"><span class="df-display"></span><button type="button" class="df-clear" title="${this.t("clearDateTitle")}" aria-label="${this.t("clearDateTitle")}">✕</button></div></label>
+        <label class="field"><span>${this.t("expiryLabel")}</span><div class="datefield"><input type="date" id="f-expiry" value="${m.expiry}"><span class="df-display"></span><button type="button" class="df-clear" title="${this.t("clearDateTitle")}" aria-label="${this.t("clearDateTitle")}"><ha-icon icon="mdi:close"></ha-icon></button></div></label>
       </div>
       <div class="expiry-hint" id="f-hint"></div>
       <button class="link" id="f-adv">${this.t("moreOptions")}</button>
@@ -992,7 +992,7 @@ class FridgeAssistantPanel extends HTMLElement {
       suggestEl.innerHTML = `
         <div class="s-body"><b>${heading || this.t("unknownProduct")}</b>
           <div class="s-sub">${esc(this.t("noTemplateFor", query, this._state.options.ai_enabled))}</div></div>
-        <div class="s-actions">${aiBtn}<button class="s-mini" id="s-other" title="${this.t("chooseTemplateTitle")}">📚</button></div>`;
+        <div class="s-actions">${aiBtn}<button class="s-mini" id="s-other" title="${this.t("chooseTemplateTitle")}"><ha-icon icon="mdi:book-multiple"></ha-icon></button></div>`;
       wireActions(query);
     };
 
@@ -1017,9 +1017,9 @@ class FridgeAssistantPanel extends HTMLElement {
           <div class="s-body"><b>${esc(t.name)}</b>
             <div class="s-sub">${noHere ? this.t("notSuitableHere") : this.t("daysAtLocation", this._locMeta(m.location).label, sl[m.location])}${t.notes ? " · " + esc(t.notes) : ""}</div></div>
           <div class="s-actions">
-            ${this._state.options.ai_enabled ? `<button class="s-mini" id="s-ai" title="${this.t("aiEstimateTitle")}">✨</button>` : ""}
-            <button class="s-mini" id="s-other" title="${this.t("otherTemplateTitle")}">📚</button>
-            <button class="s-mini ghost" id="s-dismiss" title="${this.t("notThisManualTitle")}">✕</button>
+            ${this._state.options.ai_enabled ? `<button class="s-mini" id="s-ai" title="${this.t("aiEstimateTitle")}"><ha-icon icon="mdi:creation"></ha-icon></button>` : ""}
+            <button class="s-mini" id="s-other" title="${this.t("otherTemplateTitle")}"><ha-icon icon="mdi:book-multiple"></ha-icon></button>
+            <button class="s-mini ghost" id="s-dismiss" title="${this.t("notThisManualTitle")}"><ha-icon icon="mdi:close"></ha-icon></button>
           </div>`;
         wireActions(query);
         const d = q("#s-dismiss");
@@ -1203,13 +1203,13 @@ class FridgeAssistantPanel extends HTMLElement {
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-title"><h3>${this.t("pickTemplateTitle")}</h3></div>
-        <button class="icon-btn" id="tp-close">✕</button>
+        <button class="icon-btn" id="tp-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="seg" id="tp-kinds">
         <button data-kind="all" class="on">${this.t("all")}</button>
         ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button data-kind="${k}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
       </div>
-      <div class="search big"><span>🔍</span><input id="tp-search" placeholder="${esc(this.t("searchInTemplates", templates.length))}" autocomplete="off"></div>
+      <div class="search big"><ha-icon icon="mdi:magnify" style="--mdc-icon-size:18px;color:var(--fa-muted)"></ha-icon><input id="tp-search" placeholder="${esc(this.t("searchInTemplates", templates.length))}" autocomplete="off"></div>
       <div class="tp-list" id="tp-list"></div>
     `, { wide: true });
     const listEl = h.modal.querySelector("#tp-list");
@@ -1258,16 +1258,16 @@ class FridgeAssistantPanel extends HTMLElement {
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-title"><h3>${this.t("templatesTitle")}</h3></div>
-        ${this._state.options.ai_enabled ? `<button class="btn ai icon-only" id="tm-ai" title="${this.t("templateWithAiTitle")}">✨</button>` : ""}
-        <button class="btn primary icon-only" id="tm-new" title="${this.t("newTemplateTitleIcon")}">＋</button>
-        <button class="icon-btn" id="tm-close">✕</button>
+        ${this._state.options.ai_enabled ? `<button class="btn ai icon-only" id="tm-ai" title="${this.t("templateWithAiTitle")}"><ha-icon icon="mdi:creation"></ha-icon></button>` : ""}
+        <button class="btn primary icon-only" id="tm-new" title="${this.t("newTemplateTitleIcon")}"><ha-icon icon="mdi:plus"></ha-icon></button>
+        <button class="icon-btn" id="tm-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="seg" id="tm-kinds">
         <button data-kind="all" class="on">${this.t("all")}</button>
         ${Object.keys(kinds).map((k) => { const km = this._kindMeta(k); return `<button data-kind="${k}">${km.emoji || ""} ${km.short}</button>`; }).join("")}
-        ${(this._state.hidden || []).length ? `<button data-kind="hidden" title="${this.t("hiddenTemplatesTitle")}">🙈</button>` : ""}
+        ${(this._state.hidden || []).length ? `<button data-kind="hidden" title="${this.t("hiddenTemplatesTitle")}"><ha-icon icon="mdi:eye-off-outline"></ha-icon></button>` : ""}
       </div>
-      <div class="search big"><span>🔍</span><input id="tm-search" placeholder="${this.t("searchOrFilterPlaceholder")}" autocomplete="off"></div>
+      <div class="search big"><ha-icon icon="mdi:magnify" style="--mdc-icon-size:18px;color:var(--fa-muted)"></ha-icon><input id="tm-search" placeholder="${this.t("searchOrFilterPlaceholder")}" autocomplete="off"></div>
       <div class="tp-list" id="tm-list"></div>
     `, { wide: true });
     const listEl = h.modal.querySelector("#tm-list");
@@ -1336,9 +1336,9 @@ class FridgeAssistantPanel extends HTMLElement {
   _aiNewTemplate(onChanged) {
     const h = this._openModal(`
       <div class="modal-head">
-        <div class="m-emoji">✨</div>
+        <div class="m-emoji"><ha-icon icon="mdi:creation" style="--mdc-icon-size:28px;color:var(--fa-accent)"></ha-icon></div>
         <div class="m-title"><h3>${this.t("templateWithAiTitle")}</h3><div class="s-sub">${this.t("templateWithAiSub")}</div></div>
-        <button class="icon-btn" id="ai-close">✕</button>
+        <button class="icon-btn" id="ai-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <label class="field"><span>${this.t("productOrDishLabel")}</span><input id="ai-name" placeholder="${this.t("productOrDishPlaceholder")}" enterkeyhint="go" autocomplete="off"></label>
       <div class="modal-actions"><button class="btn ai" id="ai-go">${this.t("estimateWithAiBtn")}</button></div>
@@ -1354,7 +1354,7 @@ class FridgeAssistantPanel extends HTMLElement {
       let res;
       try { res = await this._call("estimate", { name }); }
       catch (e) {
-        btn.disabled = false; btn.textContent = this.t("estimateWithAiBtn");
+        btn.disabled = false; btn.innerHTML = this.t("estimateWithAiBtn");
         this._toast(this.t("aiErrorPrefix") + (e.message || e), { type: "bad" });
         return;
       }
@@ -1395,7 +1395,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="m-title"><h3>${isNew ? this.t("newTemplateHeading") : this.t("editTemplateHeading")}</h3>
           ${!isNew ? `<div class="s-sub">${isOverride ? this.t("overrideNote") : (t.builtin ? this.t("builtinNote") : this.t("ownTemplateNote"))}</div>` : ""}
         </div>
-        <button class="icon-btn" id="te-close">✕</button>
+        <button class="icon-btn" id="te-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="grid2">
         <label class="field"><span>${this.t("nameLabel")}</span><input id="te-name" value="${esc(t.name)}" placeholder="${this.t("namePlaceholderTemplate")}"></label>
@@ -1487,7 +1487,7 @@ class FridgeAssistantPanel extends HTMLElement {
       <div class="detail-head" style="--c:${col}">
         <div class="d-emoji">${i.emoji || "🍽️"}</div>
         <div class="d-title"><h2>${esc(i.name)}</h2><div class="d-code">${esc(i.code)}</div></div>
-        <button class="icon-btn" id="d-close">✕</button>
+        <button class="icon-btn" id="d-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="d-status" style="--c:${col}">${daysLabel(i.days_left, lang)}${i.expiry_date ? " · " + fmtDate(i.expiry_date, lang) : ""}</div>
       <div class="d-rows">
@@ -1567,7 +1567,7 @@ class FridgeAssistantPanel extends HTMLElement {
       </label>`;
     };
     const h = this._openModal(`
-      <div class="modal-head"><div class="m-title"><h3>${this.t("cleanUpTitle")}</h3></div><button class="icon-btn" id="c-close">✕</button></div>
+      <div class="modal-head"><div class="m-title"><h3>${this.t("cleanUpTitle")}</h3></div><button class="icon-btn" id="c-close"><ha-icon icon="mdi:close"></ha-icon></button></div>
       ${expired.length ? `<div class="clean-sec">${this.t("expiredSection")}</div>${expired.map((i) => row(i, true)).join("")}` : ""}
       ${soon.length ? `<div class="clean-sec">${this.t("soonSection")}</div>${soon.map((i) => row(i, false)).join("")}` : ""}
       ${!expired.length && !soon.length ? `<div class="empty small"><div class="empty-emoji">✨</div><p>${this.t("allGoodMessage")}</p></div>` : ""}
@@ -1629,7 +1629,7 @@ class FridgeAssistantPanel extends HTMLElement {
       <div class="modal-head">
         <div class="m-title"><div class="m-strong">${this.t("scanTitle")}</div>
           <div class="m-sub">${this.t("scanSub")}</div></div>
-        <button class="icon-btn" id="sc-close">✕</button>
+        <button class="icon-btn" id="sc-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="seg sc-mode" id="sc-mode">
         <button type="button" data-mode="find" class="on">${this.t("searchModeBtn")}</button>
@@ -1637,7 +1637,7 @@ class FridgeAssistantPanel extends HTMLElement {
       </div>
       <div class="scanbox${canLive ? "" : " hidden"}" id="sc-box">
         <video id="sc-video" playsinline muted></video><div class="scan-frame"></div>
-        <button class="icon-btn scan-torch hidden" id="sc-torch" title="${this.t("torchTooltip")}">🔦</button>
+        <button class="icon-btn scan-torch hidden" id="sc-torch" title="${this.t("torchTooltip")}"><ha-icon icon="mdi:flashlight"></ha-icon></button>
       </div>
       <div class="scan-status" id="sc-status"></div>
       <div class="modal-actions">
@@ -1877,7 +1877,7 @@ class FridgeAssistantPanel extends HTMLElement {
     const h = this._openModal(`
       <div class="modal-head">
         <div class="m-title"><h3>${this.t("historyHeading")}</h3><div class="s-sub" id="hi-sub"></div></div>
-        <button class="icon-btn" id="hi-close">✕</button>
+        <button class="icon-btn" id="hi-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="tp-list" id="hi-list"><div class="loading">${this.t("loading")}</div></div>
       <div class="modal-actions" id="hi-more-wrap" style="display:none">
@@ -1943,7 +1943,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="m-title"><div class="m-strong">${this.t("printStickerModalTitle")}</div>
           <div class="m-sub">${esc(item?.name || "")} · <code>${esc(item?.code || "")}</code></div>
         </div>
-        <button class="icon-btn" id="p-close">✕</button>
+        <button class="icon-btn" id="p-close"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="label-preview" id="p-preview"><div class="muted">${this.t("previewLoading")}</div></div>
       <div class="print-note">${note}</div>
@@ -1982,10 +1982,10 @@ class FridgeAssistantPanel extends HTMLElement {
           render_failed: this.t("renderFailedReason"),
         };
         this._toast("🖨️ " + (map[res.reason] || this.t("genericPrintFailed", res.reason)), { type: "bad" });
-        btn.disabled = false; btn.textContent = this.t("printBtnLabel", copies);
+        btn.disabled = false; btn.innerHTML = this.t("printBtnLabel", copies);
       } catch (e) {
         this._toast(this.t("printFailedError", e.message || e), { type: "bad" });
-        btn.disabled = false; btn.textContent = this.t("printBtnLabel", copies);
+        btn.disabled = false; btn.innerHTML = this.t("printBtnLabel", copies);
       }
     });
   }
@@ -2023,7 +2023,11 @@ const STYLES = `
 .wrap{max-width:960px;margin:0 auto;padding:16px 16px 96px;}
 .topbar{position:sticky;top:0;z-index:5;padding:14px 4px;background:linear-gradient(var(--fa-bg),var(--fa-bg) 70%,transparent);}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-emoji{font-size:26px;}
+.brand-emoji{--mdc-icon-size:26px;color:var(--fa-accent);display:inline-flex;}
+ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
+.btn ha-icon{--mdc-icon-size:17px;}
+.hi-act ha-icon,.hi-undo ha-icon{--mdc-icon-size:14px;vertical-align:-3px;}
+.df-ico ha-icon{--mdc-icon-size:16px;vertical-align:-3px;}
 .brand h1{font-size:26px;font-weight:700;margin:0;letter-spacing:-.02em;}
 .counts{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;}
 .pill{background:var(--fa-card);border:1px solid var(--fa-border);border-radius:999px;padding:5px 12px;font-size:13px;color:var(--fa-muted);}
@@ -2052,6 +2056,7 @@ const STYLES = `
 .btn.ai{background:linear-gradient(135deg,#7B61FF,#B06AFF);color:#fff;}
 .btn:disabled{opacity:.5;cursor:default;transform:none;}
 .icon-btn{border:none;background:transparent;color:var(--fa-muted);font-size:18px;cursor:pointer;width:40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;}
+.icon-btn ha-icon{--mdc-icon-size:21px;vertical-align:0;}
 .icon-btn:hover{background:var(--fa-border);}
 .link{background:none;border:none;color:var(--fa-accent);cursor:pointer;font-size:14px;padding:8px 2px;font-weight:500;}
 
@@ -2235,8 +2240,9 @@ const STYLES = `
 .icon-btn{width:44px;height:44px;font-size:19px;}
 
 /* Floating add button — thumb-reachable when you're standing at the fridge */
-.fab{position:fixed;z-index:40;right:calc(18px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:20px;border:none;background:var(--fa-accent);color:#fff;font-size:34px;font-weight:300;line-height:0;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,122,255,.5);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;padding-bottom:4px;}
+.fab{position:fixed;z-index:40;right:calc(18px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:20px;border:none;background:var(--fa-accent);color:#fff;font-size:34px;font-weight:300;line-height:0;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,122,255,.5);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;}
 .fab:active{transform:scale(.92);}
+.fab ha-icon{--mdc-icon-size:30px;vertical-align:0;}
 /* secondary camera FAB, sits left of the add button */
 .fab-scan{width:54px;height:54px;right:calc(90px + env(safe-area-inset-right));bottom:calc(23px + env(safe-area-inset-bottom));font-size:24px;background:var(--fa-card);color:var(--fa-text);border:1px solid var(--fa-border);box-shadow:0 8px 22px rgba(0,0,0,.2);}
 
@@ -2258,6 +2264,7 @@ const STYLES = `
 /* suggestion action buttons: accept implicitly, or override / reject a guess */
 .s-actions{display:flex;gap:6px;align-items:center;flex:none;flex-wrap:wrap;justify-content:flex-end;}
 .s-mini{border:1px solid var(--fa-border);background:var(--fa-card);color:var(--fa-text);border-radius:10px;min-width:40px;height:36px;padding:0 10px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;}
+.s-mini ha-icon{--mdc-icon-size:16px;vertical-align:0;}
 .s-mini.ghost{color:var(--fa-muted);}
 .s-mini.ai{background:linear-gradient(135deg,#7B61FF,#B06AFF);color:#fff;border:none;}
 
