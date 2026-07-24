@@ -102,6 +102,7 @@ const STRINGS = {
     daysAtLocation: (label, days) => `${label}: ${days} dagen`,
     aiEstimateTitle: "AI-schatting",
     otherTemplateTitle: "Andere template",
+    useTemplateNameTitle: "Naam van template overnemen",
     notThisManualTitle: "Niet dit — handmatig",
     manualEntry: "Handmatig invullen",
     savedToast: "Opgeslagen ✓",
@@ -301,6 +302,7 @@ const STRINGS = {
     daysAtLocation: (label, days) => `${label}: ${days} days`,
     aiEstimateTitle: "AI estimate",
     otherTemplateTitle: "Different template",
+    useTemplateNameTitle: "Use the template's name",
     notThisManualTitle: "Not this — manual",
     manualEntry: "Manual entry",
     savedToast: "Saved ✓",
@@ -1007,10 +1009,12 @@ class FridgeAssistantPanel extends HTMLElement {
       wireActions(query);
     };
 
-    const doMatch = debounce(async () => {
+    let lastMatched = null;
+    const matchNow = async () => {
       const query = nameEl.value.trim();
       if (m.noAutoMatch) return;
       if (query.length < 2) { suggestEl.innerHTML = ""; suggestEl.className = "suggest"; return; }
+      lastMatched = query;
       let res;
       try { res = await this._call("match_template", { query, location: m.location, added_date: addedEl.value }); }
       catch (e) { return; }
@@ -1024,15 +1028,25 @@ class FridgeAssistantPanel extends HTMLElement {
         applySuggestion(res.suggestion?.expiry_date, "template");
         suggestEl.className = "suggest ok";
         suggestEl.innerHTML = `
-          <span class="s-emoji">${t.emoji || "📋"}</span>
-          <div class="s-body"><b>${esc(t.name)}</b>
-            <div class="s-sub">${noHere ? this.t("notSuitableHere") : this.t("daysAtLocation", this._locMeta(m.location).label, sl[m.location])}${t.notes ? " · " + esc(t.notes) : ""}</div></div>
+          <button type="button" class="s-take" id="s-take" title="${this.t("useTemplateNameTitle")}">
+            <span class="s-emoji">${t.emoji || "📋"}</span>
+            <div class="s-body"><b>${esc(t.name)}</b>
+              <div class="s-sub">${noHere ? this.t("notSuitableHere") : this.t("daysAtLocation", this._locMeta(m.location).label, sl[m.location])}${t.notes ? " · " + esc(t.notes) : ""}</div></div>
+          </button>
           <div class="s-actions">
             ${this._state.options.ai_enabled ? `<button class="s-mini" id="s-ai" title="${this.t("aiEstimateTitle")}"><ha-icon icon="mdi:creation"></ha-icon></button>` : ""}
             <button class="s-mini" id="s-other" title="${this.t("otherTemplateTitle")}"><ha-icon icon="mdi:book-multiple"></ha-icon></button>
             <button class="s-mini ghost" id="s-dismiss" title="${this.t("notThisManualTitle")}"><ha-icon icon="mdi:close"></ha-icon></button>
           </div>`;
         wireActions(query);
+        // Tap the recognised template to adopt its (full) name — handy when
+        // the match appeared while the user was still halfway through typing.
+        q("#s-take").addEventListener("click", () => {
+          nameEl.value = t.name;
+          lastMatched = t.name;
+          nameEl.focus();
+          nameEl.setSelectionRange(t.name.length, t.name.length);
+        });
         const d = q("#s-dismiss");
         if (d) d.addEventListener("click", () => {
           m.noAutoMatch = true; m.expiryManual = false; m.expirySource = "manual";
@@ -1042,9 +1056,19 @@ class FridgeAssistantPanel extends HTMLElement {
       } else {
         showManual(query);
       }
-    }, 350);
+    };
+    const doMatch = debounce(matchNow, 350);
 
     nameEl.addEventListener("input", doMatch);
+    // Enter = add straight away, but let a fresh match land first so the
+    // template's expiry date still comes along.
+    nameEl.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      if (!nameEl.value.trim()) return;
+      if (!m.noAutoMatch && nameEl.value.trim() !== lastMatched) await matchNow();
+      q("#f-submit").click();
+    });
     q("#m-close").addEventListener("click", h.close);
     q("#f-loc").querySelectorAll("button").forEach((b) =>
       b.addEventListener("click", () => {
@@ -2052,12 +2076,14 @@ const STYLES = `
    brand, search and every icon line up exactly with the cards below. */
 .topbar{position:sticky;top:0;z-index:5;
   margin:0 calc(-1 * var(--fa-gr)) 0 calc(-1 * var(--fa-gl));
-  padding:calc(10px + env(safe-area-inset-top)) var(--fa-gr) 12px var(--fa-gl);
+  padding:env(safe-area-inset-top) var(--fa-gr) 12px var(--fa-gl);
   background:color-mix(in srgb,var(--fa-bg) 78%,transparent);
   -webkit-backdrop-filter:blur(22px) saturate(1.6);
   backdrop-filter:blur(22px) saturate(1.6);
   border-bottom:1px solid var(--fa-line);}
-.topbar-row{display:flex;align-items:center;gap:4px;min-height:44px;}
+/* First row exactly as tall as HA's own header, so the hamburger/brand sit
+   on the same centerline as HA's sidebar header next to it. */
+.topbar-row{display:flex;align-items:center;gap:4px;min-height:var(--header-height,56px);}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;}
 .brand-emoji{--mdc-icon-size:20px;width:36px;height:36px;border-radius:12px;flex:none;
   background:var(--fa-grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;
@@ -2274,6 +2300,10 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
 .suggest.ai{background:rgba(123,97,255,.1);flex-direction:column;align-items:stretch;}
 .suggest.bad{background:rgba(255,59,48,.12);}
 .s-emoji{font-size:24px;}
+.s-take{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:none;
+  margin:-6px;padding:6px;border-radius:12px;cursor:pointer;text-align:left;font:inherit;color:inherit;}
+.s-take:hover{background:rgba(52,199,89,.16);}
+.s-take:active{transform:scale(.985);}
 .s-body{flex:1;min-width:0;}
 .s-sub{font-size:12.5px;color:var(--fa-muted);margin-top:2px;}
 .s-badge{font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:var(--fa-green);
