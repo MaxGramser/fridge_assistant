@@ -111,6 +111,9 @@ async def _async_register_static(hass: HomeAssistant) -> None:
             # Barcode decoder for browsers without a native BarcodeDetector
             # (notably iOS). Static & versioned, so it may be cached.
             StaticPathConfig(f"{URL_BASE}/zxing.min.js", str(zxing_js), True),
+            # Vendored UI fonts (@font-face must live in the document, so the
+            # panel injects a style tag pointing here).
+            StaticPathConfig(f"{URL_BASE}/fonts", str(panel_dir / "fonts"), True),
         ]
     )
     hass.data[DOMAIN][_STATIC_REGISTERED] = True
