@@ -6,18 +6,20 @@ from typing import Any, Final
 
 DOMAIN: Final = "fridge_assistant"
 
-# Storage. Version 3 = every item/history snapshot carries a `portions` list
-# (default one open portion). Version 2 = English enum identifiers
-# (fridge/freezer/pantry, dish, dairy/…); version 1 stored the original Dutch
-# ones. See FridgeDataStore._async_migrate_func in store.py.
-STORAGE_VERSION: Final = 3
+# Storage. Version 4 = the single "prepared_dish" category was split into
+# meal-time categories (breakfast/lunch/dinner/snack); old data is remapped to
+# "dinner" (see LEGACY_CATEGORIES). Version 3 = every item/history snapshot
+# carries a `portions` list (default one open portion). Version 2 = English
+# enum identifiers (fridge/freezer/pantry, dish, dairy/…); version 1 stored the
+# original Dutch ones. See FridgeDataStore._async_migrate_func in store.py.
+STORAGE_VERSION: Final = 4
 STORAGE_KEY: Final = "fridge_assistant.data"
 
 # Frontend panel / static
 URL_BASE: Final = "/fridge_assistant_static"
 
 # Keep in sync with manifest.json; busts the panel.js browser cache.
-VERSION: Final = "0.3.0"
+VERSION: Final = "0.4.0"
 PANEL_URL_PATH: Final = "fridge-assistant"
 PANEL_TITLE: Final = "Koelkast"
 PANEL_TITLE_EN: Final = "Fridge"
@@ -46,14 +48,20 @@ LOCATION_LABELS_EN: Final = {
     LOCATION_PANTRY: "Pantry",
 }
 
-# Categories (keys must match seed_templates.json)
+# Categories (keys must match seed_templates.json). The four meal-time
+# categories (breakfast/lunch/dinner/snack) replaced the single "prepared_dish"
+# bucket so prepared meals can be filtered/glanced at by when they're eaten;
+# see LEGACY_CATEGORIES for the old-data remap.
 CATEGORIES: Final = {
     "vegetables": {"label": "Groente", "emoji": "🥦", "icon": "mdi:carrot"},
     "fruit": {"label": "Fruit", "emoji": "🍎", "icon": "mdi:food-apple"},
     "dairy": {"label": "Zuivel", "emoji": "🧀", "icon": "mdi:cheese"},
     "meat": {"label": "Vlees", "emoji": "🥩", "icon": "mdi:food-steak"},
     "fish": {"label": "Vis", "emoji": "🐟", "icon": "mdi:fish"},
-    "prepared_dish": {"label": "Bereid gerecht", "emoji": "🍲", "icon": "mdi:pot-steam"},
+    "breakfast": {"label": "Ontbijt", "emoji": "🍳", "icon": "mdi:egg-fried"},
+    "lunch": {"label": "Lunch", "emoji": "🥪", "icon": "mdi:food-fork-drink"},
+    "dinner": {"label": "Avondeten", "emoji": "🍲", "icon": "mdi:pot-steam"},
+    "snack": {"label": "Snack", "emoji": "🍿", "icon": "mdi:cookie"},
     "bread_bakery": {"label": "Brood & bakkerij", "emoji": "🍞", "icon": "mdi:bread-slice"},
     "sauces_spices": {"label": "Saus & kruiden", "emoji": "🥫", "icon": "mdi:sauce"},
     "drinks": {"label": "Dranken", "emoji": "🥤", "icon": "mdi:cup"},
@@ -98,7 +106,10 @@ CATEGORY_KIND: Final = {
     "drinks": KIND_INGREDIENT,
     "eggs": KIND_INGREDIENT,
     "other": KIND_INGREDIENT,
-    "prepared_dish": KIND_DISH,
+    "breakfast": KIND_DISH,
+    "lunch": KIND_DISH,
+    "dinner": KIND_DISH,
+    "snack": KIND_DISH,
     "leftovers": KIND_DISH,
 }
 DEFAULT_KIND: Final = KIND_INGREDIENT
@@ -121,7 +132,10 @@ LEGACY_CATEGORIES: Final = {
     "zuivel": "dairy",
     "vlees": "meat",
     "vis": "fish",
-    "bereid_gerecht": "prepared_dish",
+    # "bereid gerecht" (any cooked meal) was split into meal-time categories;
+    # old data/automations/AI answers land on "dinner" as the closest fit.
+    "bereid_gerecht": "dinner",
+    "prepared_dish": "dinner",
     "brood_bakkerij": "bread_bakery",
     "saus_kruiden": "sauces_spices",
     "dranken": "drinks",

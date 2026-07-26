@@ -101,7 +101,8 @@ _USER_TEMPLATE = (
     '  "freezer": <integer days or null>,\n'
     '  "pantry": <integer days or null>,\n'
     '  "kind": "<ingredient for a single ingredient, or dish for a prepared meal>",\n'
-    '  "category": "<one of: {categories}>",\n'
+    '  "category": "<one of: {categories}; for a prepared meal pick the '
+    "meal-time it is usually eaten at (breakfast/lunch/dinner/snack)>\",\n"
     '  "emoji": "<1 fitting food emoji>",\n'
     '  "icon": "mdi:<fitting material design icon id>",\n'
     '  "notes": "<a short storage tip, max 90 chars, written in the language with '

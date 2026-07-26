@@ -109,8 +109,10 @@ Every item lives in one of three **locations** — `fridge`, `freezer`, or `pant
 - 🥕 **ingredient** — a single product (milk, lettuce, cheese, ...)
 - 🍲 **dish** — something prepared (leftovers, a home-cooked meal, ...)
 
-Kind is derived from a set of 12 finer categories (vegetables, fruit, dairy, meat, fish, prepared
-dishes, bakery, sauces & spices, drinks, eggs, leftovers, other) but can always be overridden per item.
+Kind is derived from a set of 15 finer categories (vegetables, fruit, dairy, meat, fish, breakfast,
+lunch, dinner, snack, bakery, sauces & spices, drinks, eggs, leftovers, other) but can always be
+overridden per item. Prepared meals are categorised by the meal-time they're usually eaten at, so
+the inventory can be filtered on e.g. "what dinners are in the freezer?".
 
 ### Item codes & stickers
 

@@ -131,6 +131,13 @@ def _migrate_record_v1(record: dict[str, Any]) -> None:
         record.setdefault("opened_fridge", record.pop("opened_koelkast"))
 
 
+def _migrate_category_v4(record: dict[str, Any]) -> None:
+    """Remap a v3-and-earlier ``category`` onto the current key (e.g. the
+    old catch-all "prepared_dish" onto "dinner")."""
+    if "category" in record:
+        record["category"] = canonical_category(record["category"])
+
+
 def default_portions(count: int = 1) -> list[dict[str, Any]]:
     """A fresh portions list: ``count`` open portions numbered from 1."""
     count = max(1, min(int(count or 1), MAX_PORTIONS))
@@ -141,7 +148,9 @@ class FridgeDataStore(Store):
     """Versioned store.
 
     v1 -> v2: Dutch identifiers to English. v2 -> v3: every item and history
-    snapshot gets a ``portions`` list (default one open portion).
+    snapshot gets a ``portions`` list (default one open portion). v3 -> v4:
+    the "prepared_dish" category is remapped onto "dinner" (see
+    LEGACY_CATEGORIES / CATEGORIES in const.py).
     """
 
     async def _async_migrate_func(
@@ -168,6 +177,19 @@ class FridgeDataStore(Store):
                 snap = event.get("item")
                 if isinstance(snap, dict):
                     snap.setdefault("portions", default_portions())
+        if old_major_version < 4:
+            _LOGGER.info(
+                "Migrating Fridge Assistant storage -> v4 "
+                "(prepared_dish category split into meal-time categories)"
+            )
+            for item in old_data.get("items", []):
+                _migrate_category_v4(item)
+            for tpl in old_data.get("user_templates", []):
+                _migrate_category_v4(tpl)
+            for event in old_data.get("history", []):
+                snap = event.get("item")
+                if isinstance(snap, dict):
+                    _migrate_category_v4(snap)
         return old_data
 
 

@@ -70,8 +70,11 @@ class TestNormalize(unittest.TestCase):
                          "ingredient")
 
     def test_kind_derived_from_category_when_missing(self):
-        self.assertEqual(ai._normalize("x", {"category": "prepared_dish"})["kind"],
+        self.assertEqual(ai._normalize("x", {"category": "dinner"})["kind"],
                          "dish")
+        # Old AI answers / prompts may still say prepared_dish -> dinner.
+        self.assertEqual(ai._normalize("x", {"category": "prepared_dish"})["category"],
+                         "dinner")
         self.assertEqual(ai._normalize("x", {"category": "dairy"})["kind"],
                          "ingredient")
 

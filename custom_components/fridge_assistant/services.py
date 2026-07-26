@@ -95,7 +95,7 @@ _SAMPLE_ITEM = {
     "name": "Macaroni met gehakt",
     "contents": "restje van zondag, dubbele portie",
     "location": "freezer",
-    "category": "prepared_dish",
+    "category": "dinner",
     "kind": "dish",
     "added_date": "2026-07-20",
     "expiry_date": "2026-09-20",

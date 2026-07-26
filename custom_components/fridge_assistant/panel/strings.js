@@ -20,13 +20,15 @@ export const LOCATION_LABELS = {
 export const CATEGORY_LABELS = {
   nl: {
     vegetables: "Groente", fruit: "Fruit", dairy: "Zuivel", meat: "Vlees", fish: "Vis",
-    prepared_dish: "Bereid gerecht", bread_bakery: "Brood & bakkerij",
+    breakfast: "Ontbijt", lunch: "Lunch", dinner: "Avondeten", snack: "Snack",
+    bread_bakery: "Brood & bakkerij",
     sauces_spices: "Saus & kruiden", drinks: "Dranken", eggs: "Eieren",
     leftovers: "Restjes", other: "Overig",
   },
   en: {
     vegetables: "Vegetables", fruit: "Fruit", dairy: "Dairy", meat: "Meat", fish: "Fish",
-    prepared_dish: "Prepared dish", bread_bakery: "Bakery",
+    breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack",
+    bread_bakery: "Bakery",
     sauces_spices: "Sauces & spices", drinks: "Drinks", eggs: "Eggs",
     leftovers: "Leftovers", other: "Other",
   },

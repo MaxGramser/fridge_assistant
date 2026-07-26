@@ -35,7 +35,7 @@ _CATEGORY_KEYWORDS: list[tuple[tuple[str, ...], str]] = [
     (("fruit",), "fruit"),
     (("bread", "bakery", "pastr"), "bread_bakery"),
     (("sauce", "condiment", "spread", "spice", "herb"), "sauces_spices"),
-    (("meal", "pizza", "ready-made"), "prepared_dish"),
+    (("meal", "pizza", "ready-made"), "dinner"),
 ]
 
 

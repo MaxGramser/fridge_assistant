@@ -988,7 +988,7 @@
         "spaghetti bolognese",
         "macaroni"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍝",
       "icon": "mdi:pasta",
@@ -1006,7 +1006,7 @@
         "nasi goreng",
         "gebakken rijst"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍚",
       "icon": "mdi:rice",
@@ -1024,7 +1024,7 @@
         "soep",
         "zelfgemaakte soep"
       ],
-      "category": "prepared_dish",
+      "category": "lunch",
       "kind": "dish",
       "emoji": "🍲",
       "icon": "mdi:pot-steam",
@@ -1043,7 +1043,7 @@
         "hutspot",
         "andijviestamppot"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🥔",
       "icon": "mdi:pot-steam",
@@ -1062,7 +1062,7 @@
         "witte rijst",
         "zilvervliesrijst gekookt"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍚",
       "icon": "mdi:rice",
@@ -1081,7 +1081,7 @@
         "spaghetti gekookt",
         "penne gekookt"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍝",
       "icon": "mdi:pasta",
@@ -1100,7 +1100,7 @@
         "groene curry",
         "rode curry"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍛",
       "icon": "mdi:pot-steam",
@@ -1117,7 +1117,7 @@
       "aliases": [
         "ovenschotel lasagne"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍝",
       "icon": "mdi:pasta",
@@ -1135,7 +1135,7 @@
         "pannenkoek",
         "flensjes"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🥞",
       "icon": "mdi:food",
@@ -1153,7 +1153,7 @@
         "bami goreng",
         "gebakken mie"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍜",
       "icon": "mdi:noodles",
@@ -1171,7 +1171,7 @@
         "puree",
         "gestampte aardappelen"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🥔",
       "icon": "mdi:pot-steam",
@@ -1189,7 +1189,7 @@
         "verse groentesoep",
         "tomatensoep"
       ],
-      "category": "prepared_dish",
+      "category": "lunch",
       "kind": "dish",
       "emoji": "🍲",
       "icon": "mdi:pot-steam",
@@ -1812,7 +1812,7 @@
         "margherita",
         "pizza restje"
       ],
-      "category": "prepared_dish",
+      "category": "dinner",
       "kind": "dish",
       "emoji": "🍕",
       "icon": "mdi:pizza",

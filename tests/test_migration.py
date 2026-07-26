@@ -49,7 +49,7 @@ class TestMigration(unittest.TestCase):
         self.assertEqual(by_id["a1"]["location"], "fridge")
         self.assertEqual(by_id["a1"]["category"], "dairy")
         self.assertEqual(by_id["a2"]["location"], "freezer")
-        self.assertEqual(by_id["a2"]["category"], "prepared_dish")
+        self.assertEqual(by_id["a2"]["category"], "dinner")
         self.assertEqual(by_id["a2"]["kind"], "dish")
 
     def test_templates_shelf_life_and_opened_field(self):
@@ -86,6 +86,24 @@ class TestMigration(unittest.TestCase):
                          "portions": [{"n": 1, "status": "eaten"}]}]}
         out = migrate({"items": [dict(v3["items"][0])]}, major=3)
         self.assertEqual(out, v3)
+
+    def test_v3_prepared_dish_category_migrates_to_dinner(self):
+        v3 = {
+            "items": [{"id": "n1", "category": "prepared_dish"}],
+            "user_templates": [{"id": "t1", "category": "prepared_dish"}],
+            "history": [{"id": "ev1", "item": {"category": "prepared_dish"}}],
+        }
+        out = migrate(
+            {
+                "items": [dict(v3["items"][0])],
+                "user_templates": [dict(v3["user_templates"][0])],
+                "history": [dict(v3["history"][0], item=dict(v3["history"][0]["item"]))],
+            },
+            major=3,
+        )
+        self.assertEqual(out["items"][0]["category"], "dinner")
+        self.assertEqual(out["user_templates"][0]["category"], "dinner")
+        self.assertEqual(out["history"][0]["item"]["category"], "dinner")
 
 
 if __name__ == "__main__":

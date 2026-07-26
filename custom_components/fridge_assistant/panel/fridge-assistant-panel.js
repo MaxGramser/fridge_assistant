@@ -29,6 +29,7 @@ class FridgeAssistantPanel extends HTMLElement {
     this._state = null;
     this._filterLoc = "all";
     this._filterKind = "all";
+    this._filterCat = "all";
     this._search = "";
     this._unsub = null;
     this._shellBuilt = false;
@@ -262,6 +263,26 @@ class FridgeAssistantPanel extends HTMLElement {
       }
     }
 
+    // Category chips: only categories that actually hold items (the full
+    // catalogue would flood the bar), plus the active one so an emptied
+    // filter can still be tapped back to "all".
+    const catCounts = {};
+    for (const i of this._state.items) {
+      catCounts[i.category] = (catCounts[i.category] || 0) + 1;
+    }
+    const catKeys = Object.keys(this._state.categories || {})
+      .filter((k) => catCounts[k] || k === this._filterCat);
+    if (catKeys.length) {
+      const catChip = (key, label, count) =>
+        `<button class="chip ${this._filterCat === key ? "active" : ""}" data-cat="${key}">${label} <span class="chip-n">${count}</span></button>`;
+      html += `<span class="chip-sep"></span>`;
+      html += catChip("all", this.t("all"), counts.total);
+      for (const k of catKeys) {
+        const cm = this._catMeta(k);
+        html += catChip(k, `${cm.emoji || ""} ${cm.label || k}`, catCounts[k] || 0);
+      }
+    }
+
     el.innerHTML = html;
     el.querySelectorAll("[data-loc]").forEach((b) =>
       b.addEventListener("click", () => { this._filterLoc = b.dataset.loc; this._renderFilters(); this._renderList(); })
@@ -269,12 +290,16 @@ class FridgeAssistantPanel extends HTMLElement {
     el.querySelectorAll("[data-kind]").forEach((b) =>
       b.addEventListener("click", () => { this._filterKind = b.dataset.kind; this._renderFilters(); this._renderList(); })
     );
+    el.querySelectorAll("[data-cat]").forEach((b) =>
+      b.addEventListener("click", () => { this._filterCat = b.dataset.cat; this._renderFilters(); this._renderList(); })
+    );
   }
 
   _filteredItems() {
     let items = this._state.items.slice();
     if (this._filterLoc !== "all") items = items.filter((i) => i.location === this._filterLoc);
     if (this._filterKind !== "all") items = items.filter((i) => this._kindOf(i) === this._filterKind);
+    if (this._filterCat !== "all") items = items.filter((i) => i.category === this._filterCat);
     const q = this._search.trim().toLowerCase();
     if (q) items = items.filter((i) =>
       (i.name || "").toLowerCase().includes(q) ||
