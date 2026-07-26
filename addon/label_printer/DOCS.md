@@ -154,6 +154,70 @@ curl -H 'Content-Type: application/json' \
 curl -X POST 'http://local-label-printer:8000/selftest?printer=zebra'
 ```
 
+## Playbook: a third printer adding (how the Zebra was done)
+
+This is exactly how the Zebra was added; follow the same steps for the next
+printer — e.g. a thermal **receipt printer** (plain roll, no labels).
+
+1. **Plug it in and confirm CUPS sees it.** With the add-on running:
+   ```bash
+   curl http://local-label-printer:8000/debug | jq -r '.devices'
+   # expect a line like: direct usb://EPSON/TM-T20III?serial=...
+   ```
+   (For the Zebra this showed `usb://Zebra%20Technologies/ZTC%20ZD220-203dpi%20ZPL`.)
+
+2. **Find a driver in the image.** CUPS ships generic drivers in `sample.drv`:
+   ```bash
+   # inside the add-on, or check /debug output:
+   lpinfo -m | grep -iE 'epson|star|<brand>'
+   ```
+   The Zebra matched `drv:///sample.drv/zebra.ppd` (ZPL) — no Dockerfile change
+   was needed. **No driver found?** Register the queue with `-m raw`: images
+   won't work, but the printer's native language (ESC/POS for receipt printers)
+   passes straight through, which is usually all a receipt printer needs.
+
+3. **Extend `run.sh`** — copy the whole `--- Zebra ---` block and adapt:
+   - detection: `grep -iE 'epson|tm-'` (match the USB device string),
+   - the PPD chosen in step 2,
+   - options: add `receipt_enabled` + a size option in `config.yaml`
+     (mirroring `zebra_enabled` / `zebra_label_size`),
+   - `register_queue "receipt" "$URI" "$PPD" "$MEDIA"` +
+     `add_printer_json "receipt" "escpos" ...` — the JSON `kind` is how
+     `server.py` knows what the hardware speaks.
+   - **Receipt printers print a continuous roll**: there is no label length.
+     Use a width-only media (80 mm roll ≈ `Custom.204x2000` for a long page,
+     or leave media empty and let the driver cut).
+
+4. **Extend `server.py`** (live-reloadable from `/share`, just restart the
+   add-on — no `/addons` copy needed):
+   - `DPI_BY_KIND`: receipt printers are typically **180 or 203 dpi**
+     (80 mm roll @203 dpi = 576 px wide, 58 mm = 384 px),
+   - `accepts`: append the native raw language for the new kind (like `zpl`
+     for zebra → `escpos` for a receipt printer),
+   - `_sniff_format`: ESC/POS jobs typically start with `ESC @` (`\x1b\x40`),
+   - `/selftest`: add a native-language test branch so the raw path is proven.
+
+5. **Deploy.** `config.yaml`/`Dockerfile` changes need the `/addons` copy +
+   version bump; Supervisor then wants **Update** (not Rebuild — it refuses
+   when local and store versions differ):
+   ```bash
+   cp -rf /share/fridge-assistant/addon/label_printer/. /addons/label_printer/
+   # Settings → Add-ons → ⟳ → Label Printer → Update
+   ```
+
+6. **Test in this order** (each proves one layer):
+   ```bash
+   curl http://local-label-printer:8000/printers            # queue exists? media/dpi right?
+   curl -X POST 'http://local-label-printer:8000/selftest?printer=receipt'   # raw path
+   curl -F file=@test.png -F printer=receipt http://local-label-printer:8000/print  # raster path
+   ```
+   Then check `GET /health` — the CUPS queue must drain, and confirm the
+   physical output looks right before wiring anything external to it.
+
+7. **Callers pick it up automatically** — `GET /printers` now lists the new
+   queue with its `native_px`, and `POST /print` takes `"printer": "receipt"`.
+   Nothing changes for existing callers (the DYMO stays the default).
+
 ## Troubleshooting
 
 - **`printer_not_connected`** – that queue doesn't exist or the printer wasn't
