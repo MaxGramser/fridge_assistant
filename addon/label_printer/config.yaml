@@ -1,17 +1,19 @@
-# Home Assistant add-on: Fridge Assistant – Label Printer
+# Home Assistant add-on: Label Printer
 #
-# A generic label printer service: it accepts a finished PNG or PDF over HTTP
-# and prints it on a USB DYMO LabelWriter via CUPS. The Fridge Assistant
-# integration renders the label; this add-on only prints it, so it can be
-# reused to print ANY image/PDF label.
+# A generic label print service: it accepts a finished PNG/PDF — or raw printer
+# language such as ZPL — over HTTP and prints it on a USB label printer via
+# CUPS. It renders nothing itself, so anything that can produce a label can use
+# it: the Fridge Assistant integration, Label Assistant, or an external webshop.
 #
-# TESTED HARDWARE: DYMO LabelWriter 550 + 99014 labels (54 x 101 mm).
-name: "Fridge Assistant – Label Printer"
-version: "0.1.0"
+# Every attached printer gets its own CUPS queue; callers pick one by name
+# (default: dymo). TESTED HARDWARE: DYMO LabelWriter 400 + 99014 labels
+# (54 x 101 mm) and a Zebra ZD220D with 104 x 159 mm shipping labels.
+name: "Label Printer (DYMO + Zebra)"
+version: "0.2.0"
 slug: "label_printer"
 description: >-
-  Print PNG/PDF labels on a USB DYMO LabelWriter. Tested with a LabelWriter 550
-  and 99014 labels (54 x 101 mm). Companion to the Fridge Assistant integration.
+  Print PNG/PDF labels and raw ZPL on USB label printers. Auto-detects DYMO
+  LabelWriter and Zebra ZPL printers side by side and exposes an HTTP API.
 url: "https://github.com/MaxGramser/fridge_assistant"
 arch:
   - aarch64
@@ -28,14 +30,18 @@ devices:
 ports:
   8000/tcp: 8000
 ports_description:
-  8000/tcp: "HTTP print API (POST /print with a PNG or PDF)"
+  8000/tcp: "HTTP print API (GET /printers, POST /print with PNG/PDF/ZPL)"
 map:
   - share:rw
 options:
   printer_model: "auto"
   default_media: "w154h286"
+  zebra_enabled: true
+  zebra_label_size: "104x159"
   log_level: "info"
 schema:
   printer_model: "list(auto|lw550|lw550t|lw5xl|lw450|lw450t|lw450tt|lw400|lw330)"
   default_media: "str"
+  zebra_enabled: "bool"
+  zebra_label_size: "str"
   log_level: "list(debug|info|warning|error)"
