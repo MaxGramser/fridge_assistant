@@ -50,6 +50,10 @@ except ValueError:
 RAW_FORMATS = ("zpl", "epl", "raw")
 MAX_COPIES = 20
 
+# Print-head resolution per hardware family. Rendering clients use this (via
+# GET /printers) to produce pixel-perfect art instead of relying on scaling.
+DPI_BY_KIND = {"dymo": 300, "zebra": 203}
+
 
 def _run(cmd, data: bytes | None = None):
     """Run a command; pass ``data`` to feed bytes to stdin."""
@@ -89,22 +93,23 @@ def _has_driver(name: str) -> bool:
     return os.path.exists(f"/etc/cups/ppd/{name}.ppd")
 
 
-def _media_label(media: str) -> str:
-    """Human-readable size for a CUPS media name.
+def _media_points(media: str) -> tuple[int, int] | None:
+    """The (width, height) in PostScript points a CUPS media name describes.
 
-    CUPS names carry the size in PostScript points: ``w154h286`` and
-    ``Custom.295x451`` both describe a physical label, so one conversion
-    covers every printer instead of a hard-coded table.
+    ``w154h286`` and ``Custom.295x451`` both carry the physical size, so one
+    parser covers every printer instead of a hard-coded table.
     """
-    if not media:
-        return "onbekend"
-    m = re.fullmatch(r"w(\d+)h(\d+)", media) or \
-        re.fullmatch(r"Custom\.(\d+)x(\d+)(?:mm)?", media)
-    if m:
-        w = round(int(m.group(1)) * 25.4 / 72)
-        h = round(int(m.group(2)) * 25.4 / 72)
-        return f"{w} × {h} mm"
-    return media
+    m = re.fullmatch(r"w(\d+)h(\d+)", media or "") or \
+        re.fullmatch(r"Custom\.(\d+)x(\d+)(?:mm)?", media or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def _media_label(media: str) -> str:
+    """Human-readable size for a CUPS media name."""
+    pts = _media_points(media)
+    if pts:
+        return f"{round(pts[0] * 25.4 / 72)} × {round(pts[1] * 25.4 / 72)} mm"
+    return media or "onbekend"
 
 
 def _configured(name: str) -> dict:
@@ -122,6 +127,10 @@ def _printer_entry(name: str) -> dict:
     # Zebra speaks ZPL natively; we hand raw jobs straight to the device.
     if cfg.get("kind") == "zebra":
         accepts.append("zpl")
+    dpi = DPI_BY_KIND.get(cfg.get("kind"), 300)
+    pts = _media_points(media)
+    # Render exactly this many pixels (portrait) for 1:1, unscaled output.
+    native_px = [round(p / 72 * dpi) for p in pts] if pts else None
     return {
         "name": name,
         "kind": cfg.get("kind", "unknown"),
@@ -129,6 +138,8 @@ def _printer_entry(name: str) -> dict:
         "connected": _queue_exists(name),
         "media": media,
         "label": _media_label(media),
+        "dpi": dpi,
+        "native_px": native_px,
         "accepts": accepts,
         "default": name == DEFAULT_PRINTER,
     }

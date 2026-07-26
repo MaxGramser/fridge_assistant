@@ -98,6 +98,37 @@ ZPL) and can be forced with `format`:
   exactly what your webshop generated. Page size comes from the ZPL itself, not
   from `media`.
 
+### Rendering PNGs at native resolution (for Label Assistant & other renderers)
+
+`fit-to-page` will scale any image, but scaling blurs dithering and barcodes.
+For pixel-perfect output, render the PNG at the printer's **native size** and
+it maps 1:1 onto the label. Every `GET /printers` entry carries `dpi` and
+`native_px` (portrait `[width, height]`; width = the short side of the label)
+exactly for this — **no client should hard-code sizes**:
+
+| Queue | dpi | Label | `native_px` | Set PNG dpi metadata |
+|---|---|---|---|---|
+| `dymo` | 300 | 54 × 101 mm (99014) | **[642, 1192]** | 300 × 300 |
+| `zebra` | 203 (≈ 8 dots/mm) | 104 × 159 mm | **[832, 1272]** | 203 × 203 |
+
+The values follow `px = points / 72 × dpi` from the queue's CUPS media, so a
+different roll or a changed `zebra_label_size` automatically yields new
+numbers. For ZPL the same numbers apply as dots: 104 mm wide = `^PW832`,
+159 mm long ≈ `^LL1272`.
+
+Both printers are monochrome thermal: send grayscale (or pre-dithered 1-bit)
+art; color is flattened by CUPS and rarely looks how you expect.
+
+**Recommended flow for a rendering client:**
+
+1. `GET /printers` → pick a queue by `kind`/`label`; check `connected` and
+   `accepts`.
+2. Render portrait at exactly `native_px`, with the entry's `dpi` as the PNG's
+   dpi metadata.
+3. `POST /print` with `printer` set to the chosen queue name and no `media`
+   field — the queue's configured default is used, and on the DYMO "auto" lets
+   the printer match the loaded roll.
+
 ```bash
 # PNG to the DYMO (default printer — no 'printer' field needed)
 curl -F file=@label.png http://local-label-printer:8000/print
