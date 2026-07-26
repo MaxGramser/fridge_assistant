@@ -19,16 +19,20 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .ai import AIEstimateError, async_estimate
+from .codes import split_portion_code
 from .const import (
+    ACTION_EATEN,
     ACTION_TOSSED,
     CONF_AI_ENABLED,
     DOMAIN,
     EVENT_ITEM_ADDED,
     EVENT_ITEM_COMPLETED,
     EVENT_ITEM_REMOVED,
+    EVENT_PORTION_CONSUMED,
     HISTORY_ACTIONS,
     LEGACY_LOCATIONS,
     LOCATIONS,
+    MAX_PORTIONS,
     localized,
     resolve_language,
     shared_text,
@@ -64,6 +68,7 @@ SERVICE_ADD_ITEM = "add_item"
 SERVICE_UPDATE_ITEM = "update_item"
 SERVICE_REMOVE_ITEM = "remove_item"
 SERVICE_COMPLETE_ITEM = "complete_item"
+SERVICE_EAT_PORTION = "eat_portion"
 SERVICE_REMOVE_EXPIRED = "remove_expired"
 SERVICE_ESTIMATE = "estimate"
 SERVICE_ADD_TEMPLATE = "add_template"
@@ -76,6 +81,7 @@ _ALL_SERVICES = [
     SERVICE_UPDATE_ITEM,
     SERVICE_REMOVE_ITEM,
     SERVICE_COMPLETE_ITEM,
+    SERVICE_EAT_PORTION,
     SERVICE_REMOVE_EXPIRED,
     SERVICE_ESTIMATE,
     SERVICE_ADD_TEMPLATE,
@@ -100,6 +106,7 @@ EXPORT_LABEL_SCHEMA = vol.Schema(
     {
         vol.Optional("item_id"): cv.string,
         vol.Optional("item"): dict,
+        vol.Optional("portion"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("path"): cv.string,
         vol.Optional("reload", default=False): cv.boolean,
     }
@@ -120,6 +127,9 @@ ADD_ITEM_SCHEMA = vol.Schema(
         vol.Optional("added_date"): cv.string,
         vol.Optional("expiry_date"): cv.string,
         vol.Optional("quantity"): cv.string,
+        vol.Optional("portions"): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=MAX_PORTIONS)
+        ),
         vol.Optional("emoji"): cv.string,
         vol.Optional("icon"): cv.string,
         vol.Optional("photo"): cv.string,
@@ -137,6 +147,17 @@ COMPLETE_ITEM_SCHEMA = vol.Schema(
     {
         vol.Required("id"): cv.string,
         vol.Required("action"): vol.In(HISTORY_ACTIONS),
+    }
+)
+
+EAT_PORTION_SCHEMA = vol.Schema(
+    {
+        # Either the internal id or the printed code — a portion sub-code
+        # ("AB12-3") picks that specific portion.
+        vol.Optional("id"): cv.string,
+        vol.Optional("code"): cv.string,
+        vol.Optional("portion"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("action", default=ACTION_EATEN): vol.In(HISTORY_ACTIONS),
     }
 )
 
@@ -217,6 +238,62 @@ def async_setup_services(hass: HomeAssistant) -> None:
         )
         return {"event": event}
 
+    async def handle_eat_portion(call: ServiceCall) -> ServiceResponse:
+        runtime = _get_runtime(hass)
+        item_id = call.data.get("id")
+        portion = call.data.get("portion")
+        if not item_id:
+            base, code_portion = split_portion_code(call.data.get("code") or "")
+            if portion is None:
+                portion = code_portion
+            item = next(
+                (i for i in runtime.store.items.values()
+                 if (i.get("code") or "").upper() == base),
+                None,
+            )
+            if item is None:
+                raise HomeAssistantError(
+                    shared_text(hass, "item_not_found", id=call.data.get("code"))
+                )
+            item_id = item["id"]
+        by = by_name = None
+        if call.context.user_id:
+            user = await hass.auth.async_get_user(call.context.user_id)
+            if user:
+                by, by_name = user.id, user.name
+        result = runtime.store.consume_portion(
+            item_id, portion=portion, action=call.data["action"], by=by, by_name=by_name
+        )
+        if isinstance(result, str):
+            if result == "item_not_found":
+                raise HomeAssistantError(shared_text(hass, "item_not_found", id=item_id))
+            raise HomeAssistantError(shared_text(hass, result, n=portion))
+        await runtime.async_changed()
+        event = result["event"]
+        snap = event.get("item") or {}
+        hass.bus.async_fire(
+            EVENT_PORTION_CONSUMED,
+            {
+                "item_id": item_id,
+                "code": snap.get("code"),
+                "name": snap.get("name"),
+                "portion": result["portion"],
+                "remaining": result["remaining"],
+                "completed": result["completed"],
+            },
+        )
+        if result["completed"]:
+            hass.bus.async_fire(
+                EVENT_ITEM_COMPLETED,
+                {
+                    "action": event["action"],
+                    "by": event["by"],
+                    "code": snap.get("code"),
+                    "name": snap.get("name"),
+                },
+            )
+        return result
+
     async def handle_remove_expired(call: ServiceCall) -> ServiceResponse:
         # Same behaviour as the panel's clean-up mode: completing as "tossed"
         # keeps a history record of what was thrown out and by whom, instead
@@ -295,7 +372,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
         else:
             item = dict(_SAMPLE_ITEM)
         path = call.data.get("path") or "/share/fridge-assistant/_preview/label.png"
-        png = await async_render_png(hass, item, reload=call.data.get("reload", False))
+        png = await async_render_png(
+            hass, item,
+            portion=call.data.get("portion"),
+            reload=call.data.get("reload", False),
+        )
 
         def _write() -> int:
             target = Path(path)
@@ -327,6 +408,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_COMPLETE_ITEM, handle_complete_item,
         schema=COMPLETE_ITEM_SCHEMA, supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_EAT_PORTION, handle_eat_portion,
+        schema=EAT_PORTION_SCHEMA, supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
         DOMAIN, SERVICE_REMOVE_EXPIRED, handle_remove_expired,

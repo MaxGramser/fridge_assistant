@@ -51,6 +51,7 @@ STRINGS = {
         "expired_days": "{n} dagen over datum",
         "no_date": "geen datum",
         "brand": "FRIDGE ASSISTANT",
+        "portion": "PORTIE {n}/{total}",
     },
     "en": {
         "code": "ITEM CODE",
@@ -65,6 +66,7 @@ STRINGS = {
         "expired_days": "{n} days past date",
         "no_date": "no date",
         "brand": "FRIDGE ASSISTANT",
+        "portion": "PORTION {n}/{total}",
     },
 }
 
@@ -293,11 +295,21 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     y += 18
 
     # 3) Hero code + barcode -------------------------------------------------
+    # Multi-portion items print one sticker per portion with a sub-code
+    # (AB12-3) and a "PORTIE n/N" heading; the barcode encodes the sub-code so
+    # scanning identifies exactly which portion is being eaten.
     code = str(item.get("code") or "----").upper()
+    portion = ctx.get("portion")
+    portions_total = int(ctx.get("portions_total") or 1)
+    if portion and portions_total > 1:
+        code = f"{code}-{portion}"
+        code_heading = s["portion"].format(n=portion, total=portions_total)
+    else:
+        code_heading = s["code"]
     hero_top = y
     d.line([MX, y, LABEL_W - MX, y], fill=BLACK, width=2)
     y += 22
-    _draw_tracked(d, (0, y), s["code"], sans_bold(26), tracking=10,
+    _draw_tracked(d, (0, y), code_heading, sans_bold(26), tracking=10,
                   anchor_center=cx)
     y += 40
     code_font, _ = _fit_font(d, code, mono_bold, inner_w - 40, start=176,

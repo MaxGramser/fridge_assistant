@@ -101,6 +101,10 @@
         },
         "quantity": {
           "name": "Hoeveelheid"
+        },
+        "portions": {
+          "name": "Porties",
+          "description": "In hoeveel porties deze batch is verdeeld. Elke portie krijgt een eigen stickercode (AB12-1, AB12-2, …)."
         }
       }
     },
@@ -130,6 +134,27 @@
         "id": {
           "name": "Item-ID",
           "description": "Interne id van het item."
+        },
+        "action": {
+          "name": "Actie"
+        }
+      }
+    },
+    "eat_portion": {
+      "name": "Portie opeten",
+      "description": "Markeer één portie van een item als opgegeten of weggegooid. De laatste portie rondt het hele item automatisch af.",
+      "fields": {
+        "id": {
+          "name": "Item-ID",
+          "description": "Interne id van het item. Alternatief voor de code."
+        },
+        "code": {
+          "name": "Code",
+          "description": "Geprinte stickercode; een subcode zoals AB12-2 kiest die portie."
+        },
+        "portion": {
+          "name": "Portie",
+          "description": "Portienummer. Leeg = de eerstvolgende open portie."
         },
         "action": {
           "name": "Actie"

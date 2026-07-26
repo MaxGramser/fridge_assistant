@@ -108,6 +108,10 @@ async def _async_register_static(hass: HomeAssistant) -> None:
     zxing_js = panel_dir / "vendor" / "zxing.min.js"
     await hass.http.async_register_static_paths(
         [
+            # The panel is split into native ES modules; the entry's relative
+            # imports resolve inside this directory. Uncached so an edit +
+            # hard refresh picks up every module without an HA restart.
+            StaticPathConfig(f"{URL_BASE}/panel", str(panel_dir), False),
             StaticPathConfig(f"{URL_BASE}/panel.js", str(panel_js), False),
             # Barcode decoder for browsers without a native BarcodeDetector
             # (notably iOS). Static & versioned, so it may be cached.
@@ -129,7 +133,9 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         frontend_url_path=PANEL_URL_PATH,
         webcomponent_name=PANEL_WEBCOMPONENT,
         # Versioned URL so a normal reload always picks up the newest panel.
-        module_url=f"{URL_BASE}/panel.js?v={VERSION}",
+        # Must point inside the /panel directory path so the entry's relative
+        # ES-module imports (./strings.js, ./views/…) resolve.
+        module_url=f"{URL_BASE}/panel/fridge-assistant-panel.js?v={VERSION}",
         sidebar_title=sidebar_title,
         sidebar_icon=PANEL_ICON,
         require_admin=False,

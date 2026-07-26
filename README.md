@@ -57,6 +57,12 @@ full undo. It works completely offline; AI estimates and the printer add-on are 
 - 📚 **Templates manager** — view, edit, hide/restore built-ins, or add your own (with or without AI).
 - 🏷️ **Unique item codes** (`AB12`-style) with an optional printed sticker (barcode included) via the
   companion label printer add-on.
+- 🍱 **Portions** — split a batch (say, a big pan of lasagne) into up to 24 portions on one item.
+  Each portion gets its own sub-code and sticker (`AB12-1`, `AB12-2`, …); scanning one marks exactly
+  that portion eaten, and the last portion completes the item automatically.
+- 🗂️ **Inspector drawer** — on desktop an item opens in a side drawer (the list stays visible and
+  clickable); on mobile everything remains a bottom sheet. History and the templates manager use the
+  same drawer.
 - 📷 **Barcode scanning** — scan your own sticker to instantly find an item, or scan a retail barcode
   to add a new grocery product with its name/photo/quantity pre-filled.
 - 👤 **Who added what** — items remember who put them in, shown with their Home Assistant person avatar.
@@ -115,6 +121,16 @@ ambiguous letters (I/O/Q) excluded so it always reads cleanly off a small sticke
 If the optional [Label Printer add-on](#optional-label-printer-add-on) is installed, a tap on 🏷️ prints
 a sticker sized for a **DYMO 99014** label (54 × 101 mm) with the item name, a scannable Code 39 barcode
 of the item code, the storage date, a bold "eat before" date, contents, and quantity/servings.
+
+### Portions
+
+Cooked a big batch? Set a portion count when adding the item (or later, in the inspector) and the
+batch stays **one item** in the list instead of three duplicates. Each portion gets its own sub-code
+(`AB12-1`, `AB12-2`, …) with its own sticker and barcode, plus a `PORTION 1/3` line on the label.
+Scanning a portion sticker in eat-mode marks exactly that portion as eaten (with per-portion undo);
+eating or tossing the last open portion completes the whole item — as *tossed* only when every portion
+was tossed, otherwise *eaten*. The inspector shows every portion's state (open / eaten by whom, when),
+lets you eat, toss or reprint per portion, and resize the batch without disturbing consumed portions.
 
 ### Automatic expiry estimation
 
@@ -249,10 +265,11 @@ Developer Tools → Actions.
 
 | Service | Description | Key fields |
 |---|---|---|
-| `fridge_assistant.add_item` | Add an item. Expiry is estimated automatically from contents + location if not given. | `name`, `contents`, `location`, `added_date`, `expiry_date`, `quantity` |
+| `fridge_assistant.add_item` | Add an item. Expiry is estimated automatically from contents + location if not given. | `name`, `contents`, `location`, `added_date`, `expiry_date`, `quantity`, `portions` |
 | `fridge_assistant.update_item` | Update fields on an existing item. | `id`, *(any item field)* |
 | `fridge_assistant.remove_item` | Delete an item outright (no history entry). | `id` |
 | `fridge_assistant.complete_item` | Finish an item as eaten or tossed — logged to history with who/when. | `id`, `action` (`eaten` / `tossed`) |
+| `fridge_assistant.eat_portion` | Mark one portion eaten/tossed; the last portion completes the item. | `id` or `code` (`AB12-2` picks that portion), `portion`, `action` |
 | `fridge_assistant.remove_expired` | Clear out everything past its date in one call. | — |
 | `fridge_assistant.estimate` | Ask AI to estimate shelf life for a product name. | `name` |
 | `fridge_assistant.add_template` | Add or update a template in the shelf-life database. | `name`, *(template fields)* |
@@ -322,9 +339,13 @@ custom_components/fridge_assistant/
 ├── label_render.py                  # Pillow-based DYMO label rendering (no HA imports)
 ├── brand_render.py                    # generates the icon/logo artwork in brands/
 ├── printer.py                          # renders + posts labels to the add-on
-├── panel/
-│   ├── fridge-assistant-panel.js         # the mobile-first custom panel (vanilla, no build step)
-│   └── vendor/zxing.min.js                 # bundled barcode decoder for iOS/Safari
+├── panel/                    # the mobile-first custom panel — native ES modules, no build step
+│   ├── fridge-assistant-panel.js  # entry: custom element, shell, list, filters
+│   ├── strings.js                 # all nl/en UI strings + label maps
+│   ├── styles.js                  # all CSS (injected into the shadow root)
+│   ├── lib/                       # format helpers + modal/drawer/toast surfaces
+│   ├── views/                     # one module per view (inspector, add, scanner, …)
+│   └── vendor/zxing.min.js        # bundled barcode decoder for iOS/Safari
 └── data/
     ├── seed_templates.json                   # the 99-template shelf-life database
     └── fonts/                                  # bundled fonts for label rendering

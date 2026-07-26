@@ -40,7 +40,9 @@ class PrinterError(Exception):
     """Raised when a label cannot be printed."""
 
 
-def build_label_context(hass: HomeAssistant, item: dict[str, Any]) -> dict[str, Any]:
+def build_label_context(
+    hass: HomeAssistant, item: dict[str, Any], portion: int | None = None
+) -> dict[str, Any]:
     """Build the display context (labels, language, date) for rendering."""
     lang = resolve_language(hass)
     location = item.get("location") or ""
@@ -50,6 +52,10 @@ def build_label_context(hass: HomeAssistant, item: dict[str, Any]) -> dict[str, 
         "location_label": get_location_label(location, lang),
         "kind_label": get_kind_label(kind, lang),
         "today": dt_util.now().date(),
+        # Portion stickers get a sub-code (AB12-3) + "PORTIE n/N" heading;
+        # single-portion items render exactly like before.
+        "portion": portion,
+        "portions_total": len(item.get("portions") or []) or 1,
     }
 
 
@@ -61,15 +67,22 @@ def _render_sync(item: dict[str, Any], ctx: dict[str, Any], reload: bool) -> byt
 
 
 async def async_render_png(
-    hass: HomeAssistant, item: dict[str, Any], *, reload: bool = False
+    hass: HomeAssistant,
+    item: dict[str, Any],
+    *,
+    portion: int | None = None,
+    reload: bool = False,
 ) -> bytes:
-    """Render ``item`` to PNG bytes off the event loop."""
-    ctx = build_label_context(hass, item)
+    """Render ``item`` (optionally one specific portion) off the event loop."""
+    ctx = build_label_context(hass, item, portion)
     return await hass.async_add_executor_job(_render_sync, item, ctx, reload)
 
 
 async def async_print_item(
-    hass: HomeAssistant, item: dict[str, Any], options: dict[str, Any]
+    hass: HomeAssistant,
+    item: dict[str, Any],
+    options: dict[str, Any],
+    portion: int | None = None,
 ) -> dict[str, Any]:
     """Render ``item`` and send it to the printer add-on. Never raises."""
     code = item.get("code")
@@ -79,7 +92,7 @@ async def async_print_item(
     url = (options.get(CONF_PRINTER_URL) or DEFAULT_PRINTER_URL).strip().rstrip("/")
     copies = max(1, int(options.get(CONF_LABEL_COPIES) or 1))
     try:
-        png = await async_render_png(hass, item)
+        png = await async_render_png(hass, item, portion=portion)
     except Exception as err:  # noqa: BLE001 - render failures shouldn't crash callers
         _LOGGER.exception("Label render failed")
         return {"printed": False, "reason": "render_failed",
@@ -102,7 +115,7 @@ async def async_print_item(
                 "printed": ok,
                 "reason": None if ok else (body.get("error") or f"http_{resp.status}"),
                 "detail": body.get("detail") or body.get("hint"),
-                "copies": copies, "code": code, "url": url,
+                "copies": copies, "code": code, "portion": portion, "url": url,
             }
     except aiohttp.ClientError as err:
         return {"printed": False, "reason": "printer_unreachable",

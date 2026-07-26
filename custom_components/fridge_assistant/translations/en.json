@@ -101,6 +101,10 @@
         },
         "quantity": {
           "name": "Quantity"
+        },
+        "portions": {
+          "name": "Portions",
+          "description": "How many portions this batch is split into. Each portion gets its own sticker code (AB12-1, AB12-2, …)."
         }
       }
     },
@@ -130,6 +134,27 @@
         "id": {
           "name": "Item ID",
           "description": "Internal id of the item."
+        },
+        "action": {
+          "name": "Action"
+        }
+      }
+    },
+    "eat_portion": {
+      "name": "Eat portion",
+      "description": "Mark one portion of an item as eaten or tossed. The last portion completes the whole item automatically.",
+      "fields": {
+        "id": {
+          "name": "Item ID",
+          "description": "Internal id of the item. Alternative to the code."
+        },
+        "code": {
+          "name": "Code",
+          "description": "Printed sticker code; a sub-code like AB12-2 picks that portion."
+        },
+        "portion": {
+          "name": "Portion",
+          "description": "Portion number. Empty = the next open portion."
         },
         "action": {
           "name": "Action"

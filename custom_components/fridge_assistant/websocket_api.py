@@ -31,10 +31,12 @@ from .const import (
     HISTORY_ACTIONS,
     LABEL_SIZE_MM,
     LABEL_TYPE,
+    MAX_PORTIONS,
     PRINTER_MODEL,
     EVENT_ITEM_ADDED,
     EVENT_ITEM_COMPLETED,
     EVENT_ITEM_REMOVED,
+    EVENT_PORTION_CONSUMED,
     LOCATION_META,
     LOCATIONS,
     SIGNAL_UPDATED,
@@ -68,7 +70,10 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_hide_template)
     websocket_api.async_register_command(hass, ws_unhide_template)
     websocket_api.async_register_command(hass, ws_complete_item)
+    websocket_api.async_register_command(hass, ws_consume_portion)
+    websocket_api.async_register_command(hass, ws_set_portions)
     websocket_api.async_register_command(hass, ws_restore_item)
+    websocket_api.async_register_command(hass, ws_delete_history_event)
     websocket_api.async_register_command(hass, ws_history)
     websocket_api.async_register_command(hass, ws_lookup_barcode)
     websocket_api.async_register_command(hass, ws_print_sticker)
@@ -335,6 +340,92 @@ async def ws_complete_item(hass, connection, msg) -> None:
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): f"{DOMAIN}/consume_portion",
+        vol.Required("item_id"): str,
+        vol.Optional("portion"): int,
+        vol.Optional("action"): vol.In(HISTORY_ACTIONS),
+    }
+)
+@websocket_api.async_response
+async def ws_consume_portion(hass, connection, msg) -> None:
+    """Eat/toss one portion; the last open portion completes the whole item."""
+    runtime = _runtime_or_error(hass, connection, msg)
+    if runtime is None:
+        return
+    user = connection.user
+    result = runtime.store.consume_portion(
+        msg["item_id"],
+        portion=msg.get("portion"),
+        action=msg.get("action", "eaten"),
+        by=user.id if user is not None else None,
+        by_name=user.name if user is not None else None,
+    )
+    if isinstance(result, str):
+        # Store returned an error key; localise it for the panel.
+        if result == "item_not_found":
+            connection.send_error(
+                msg["id"], "not_found",
+                shared_text(hass, "item_not_found", id=msg["item_id"]),
+            )
+        else:
+            connection.send_error(
+                msg["id"], result,
+                shared_text(hass, result, n=msg.get("portion")),
+            )
+        return
+    await runtime.async_changed()
+    event = result["event"]
+    snap = event.get("item") or {}
+    hass.bus.async_fire(
+        EVENT_PORTION_CONSUMED,
+        {
+            "item_id": msg["item_id"],
+            "code": snap.get("code"),
+            "name": snap.get("name"),
+            "portion": result["portion"],
+            "remaining": result["remaining"],
+            "completed": result["completed"],
+        },
+    )
+    if result["completed"]:
+        hass.bus.async_fire(
+            EVENT_ITEM_COMPLETED,
+            {
+                "action": event["action"],
+                "by": event["by"],
+                "code": snap.get("code"),
+                "name": snap.get("name"),
+            },
+        )
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/set_portions",
+        vol.Required("item_id"): str,
+        vol.Required("total"): vol.All(int, vol.Range(min=1, max=MAX_PORTIONS)),
+    }
+)
+@websocket_api.async_response
+async def ws_set_portions(hass, connection, msg) -> None:
+    """Resize a batch; shrinking away the last open portion completes it."""
+    runtime = _runtime_or_error(hass, connection, msg)
+    if runtime is None:
+        return
+    result = runtime.store.set_portions(msg["item_id"], msg["total"])
+    if result is None:
+        connection.send_error(
+            msg["id"], "not_found",
+            shared_text(hass, "item_not_found", id=msg["item_id"]),
+        )
+        return
+    await runtime.async_changed()
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): f"{DOMAIN}/restore_item",
         vol.Required("event_id"): str,
     }
@@ -351,6 +442,26 @@ async def ws_restore_item(hass, connection, msg) -> None:
         return
     await runtime.async_changed()
     connection.send_result(msg["id"], {"item": item})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/delete_history_event",
+        vol.Required("event_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_delete_history_event(hass, connection, msg) -> None:
+    """Permanently delete one history event — the counterpart of restore."""
+    runtime = _runtime_or_error(hass, connection, msg)
+    if runtime is None:
+        return
+    ok = runtime.store.delete_history_event(msg["event_id"])
+    if not ok:
+        connection.send_error(msg["id"], "not_found", shared_text(hass, "cannot_restore"))
+        return
+    await runtime.async_changed()
+    connection.send_result(msg["id"], {"deleted": True})
 
 
 @websocket_api.websocket_command(
@@ -541,6 +652,7 @@ async def ws_unhide_template(hass, connection, msg) -> None:
     {
         vol.Required("type"): f"{DOMAIN}/print_sticker",
         vol.Required("item_id"): str,
+        vol.Optional("portion"): int,
     }
 )
 @websocket_api.async_response
@@ -554,7 +666,9 @@ async def ws_print_sticker(hass, connection, msg) -> None:
     if item is None:
         connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
-    result = await async_print_item(hass, item, runtime.options)
+    result = await async_print_item(
+        hass, item, runtime.options, portion=msg.get("portion")
+    )
     connection.send_result(msg["id"], result)
 
 
@@ -563,6 +677,7 @@ async def ws_print_sticker(hass, connection, msg) -> None:
         vol.Required("type"): f"{DOMAIN}/render_label",
         vol.Optional("item_id"): str,
         vol.Optional("item"): dict,
+        vol.Optional("portion"): int,
     }
 )
 @websocket_api.async_response
@@ -584,7 +699,7 @@ async def ws_render_label(hass, connection, msg) -> None:
             )
             return
     try:
-        png = await async_render_png(hass, item)
+        png = await async_render_png(hass, item, portion=msg.get("portion"))
     except Exception as err:  # noqa: BLE001
         connection.send_error(msg["id"], "render_failed", str(err))
         return

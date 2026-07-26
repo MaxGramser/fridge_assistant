@@ -17,6 +17,9 @@ from homeassistant.util import dt as dt_util
 from .codes import generate_code
 from .const import (
     ACTION_EATEN,
+    ACTION_PORTION_EATEN,
+    ACTION_PORTION_TOSSED,
+    ACTION_TOSSED,
     CATEGORIES,
     CATEGORY_KIND,
     DEFAULT_CATEGORY,
@@ -29,6 +32,8 @@ from .const import (
     KIND_INGREDIENT,
     LOCATIONS,
     MAX_HISTORY,
+    MAX_PORTIONS,
+    PORTION_ACTIONS,
     SOURCE_MANUAL,
     SOURCE_NONE,
     SOURCE_TEMPLATE,
@@ -126,8 +131,18 @@ def _migrate_record_v1(record: dict[str, Any]) -> None:
         record.setdefault("opened_fridge", record.pop("opened_koelkast"))
 
 
+def default_portions(count: int = 1) -> list[dict[str, Any]]:
+    """A fresh portions list: ``count`` open portions numbered from 1."""
+    count = max(1, min(int(count or 1), MAX_PORTIONS))
+    return [{"n": i + 1, "status": "open"} for i in range(count)]
+
+
 class FridgeDataStore(Store):
-    """Versioned store; migrates v1 (Dutch identifiers) to v2 (English)."""
+    """Versioned store.
+
+    v1 -> v2: Dutch identifiers to English. v2 -> v3: every item and history
+    snapshot gets a ``portions`` list (default one open portion).
+    """
 
     async def _async_migrate_func(
         self, old_major_version: int, old_minor_version: int, old_data: dict[str, Any]
@@ -145,6 +160,14 @@ class FridgeDataStore(Store):
                 snap = event.get("item")
                 if isinstance(snap, dict):
                     _migrate_record_v1(snap)
+        if old_major_version < 3:
+            _LOGGER.info("Migrating Fridge Assistant storage -> v3 (portions)")
+            for item in old_data.get("items", []):
+                item.setdefault("portions", default_portions())
+            for event in old_data.get("history", []):
+                snap = event.get("item")
+                if isinstance(snap, dict):
+                    snap.setdefault("portions", default_portions())
         return old_data
 
 
@@ -437,6 +460,9 @@ class FridgeStore:
             "photo": data.get("photo"),
             "template_id": (template or {}).get("id") if template else data.get("template_id"),
             "quantity": data.get("quantity"),
+            # Every item has portions; a normal single item is one open portion.
+            # Only multi-portion items get sub-codes (AB12-1 …) on stickers.
+            "portions": default_portions(data.get("portions")),
             "added_date": added_date,
             "expiry_date": expiry_date,
             "expiry_source": expiry_source,
@@ -516,11 +542,14 @@ class FridgeStore:
         action: str,
         by: str | None = None,
         by_name: str | None = None,
+        portion: int | None = None,
     ) -> dict[str, Any] | None:
         """Mark an item done (eaten/tossed): remove it and log a history event.
 
         Stores a compact snapshot of the item so history stays readable even
         after the live item is gone. The list is capped at ``MAX_HISTORY``.
+        ``portion`` records which portion triggered an automatic completion,
+        so undoing it can reopen exactly that portion.
         """
         item = self.items.pop(item_id, None)
         if item is None:
@@ -535,26 +564,218 @@ class FridgeStore:
             "by_name": by_name,
             # Full snapshot so a completion can be undone losslessly, keeping
             # the original id + code (so the physical label still matches).
-            "item": dict(item),
+            # Portions are copied per-dict so later edits to a restored item
+            # can never rewrite this snapshot.
+            "item": {**item, "portions": [dict(p) for p in item.get("portions") or []]},
         }
+        if portion is not None:
+            event["portion"] = portion
         self.history.insert(0, event)
         if len(self.history) > MAX_HISTORY:
             del self.history[MAX_HISTORY:]
         return event
 
+    # ---- portions ---------------------------------------------------------
+
+    @staticmethod
+    def _portions(item: dict[str, Any]) -> list[dict[str, Any]]:
+        """The item's portions list, creating the default for pre-v3 dicts."""
+        portions = item.get("portions")
+        if not isinstance(portions, list) or not portions:
+            portions = default_portions()
+            item["portions"] = portions
+        return portions
+
+    def set_portions(self, item_id: str, total: int) -> dict[str, Any] | None:
+        """Resize how many portions a batch is split into.
+
+        Consumed portions are untouched and portion numbers stay stable (a
+        printed sticker keeps matching). Growing appends fresh open portions;
+        shrinking drops the highest-numbered *open* ones. The total can never
+        drop below the number of consumed portions — and if shrinking removes
+        the last open portion, the item completes just like eating it would.
+
+        Returns ``{"item", "completed", "completion_event"}`` or None.
+        """
+        item = self.items.get(item_id)
+        if item is None:
+            return None
+        portions = self._portions(item)
+        consumed = [p for p in portions if p.get("status") != "open"]
+        total = max(len(consumed), min(int(total or 1), MAX_PORTIONS))
+        if total == 0:
+            total = 1
+        current = len(portions)
+        if total > current:
+            next_n = max(p.get("n", 0) for p in portions) + 1
+            for i in range(total - current):
+                portions.append({"n": next_n + i, "status": "open"})
+        elif total < current:
+            removable = current - total
+            for p in sorted(
+                (p for p in portions if p.get("status") == "open"),
+                key=lambda p: p.get("n", 0),
+                reverse=True,
+            )[:removable]:
+                portions.remove(p)
+        item["updated_at"] = dt_util.now().isoformat()
+
+        completion_event = None
+        if consumed and not any(p.get("status") == "open" for p in portions):
+            # Shrinking removed the last open portion: the batch is finished.
+            action = (
+                ACTION_TOSSED
+                if all(p.get("status") == "tossed" for p in consumed)
+                else ACTION_EATEN
+            )
+            completion_event = self.complete_item(item_id, action)
+        return {
+            "item": None if completion_event else item,
+            "completed": completion_event is not None,
+            "completion_event": completion_event,
+        }
+
+    def consume_portion(
+        self,
+        item_id: str,
+        portion: int | None = None,
+        action: str = ACTION_EATEN,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any] | str:
+        """Mark one portion eaten/tossed; auto-complete on the last one.
+
+        ``portion`` picks a specific portion number (from a scanned sub-code);
+        None consumes the lowest-numbered open portion. Returns a result dict,
+        or an error key ('item_not_found' / 'portion_not_found' /
+        'portion_consumed' / 'no_open_portions') for the caller to localise.
+
+        The last open portion logs ONE event: the item completion (stamped
+        with the portion number) — not an extra portion event — so a scan
+        never produces two history rows. The completion action is 'tossed'
+        only when every portion was tossed; otherwise 'eaten'.
+        """
+        item = self.items.get(item_id)
+        if item is None:
+            return "item_not_found"
+        if action not in HISTORY_ACTIONS:
+            action = ACTION_EATEN
+        portions = self._portions(item)
+        if portion is not None:
+            target = next((p for p in portions if p.get("n") == portion), None)
+            if target is None:
+                return "portion_not_found"
+            if target.get("status") != "open":
+                return "portion_consumed"
+        else:
+            target = next(
+                (p for p in sorted(portions, key=lambda p: p.get("n", 0))
+                 if p.get("status") == "open"),
+                None,
+            )
+            if target is None:
+                return "no_open_portions"
+
+        target["status"] = "eaten" if action == ACTION_EATEN else "tossed"
+        target["ts"] = dt_util.now().isoformat()
+        target["by"] = by
+        target["by_name"] = by_name
+        item["updated_at"] = dt_util.now().isoformat()
+        remaining = sum(1 for p in portions if p.get("status") == "open")
+
+        if remaining == 0:
+            final_action = (
+                ACTION_TOSSED
+                if all(p.get("status") == "tossed" for p in portions)
+                else ACTION_EATEN
+            )
+            event = self.complete_item(
+                item_id, final_action, by, by_name, portion=target.get("n")
+            )
+            return {
+                "event": event,
+                "portion": target.get("n"),
+                "remaining": 0,
+                "completed": True,
+                "item": None,
+            }
+
+        event = {
+            "id": uuid.uuid4().hex,
+            "ts": dt_util.now().isoformat(),
+            "action": ACTION_PORTION_EATEN
+            if action == ACTION_EATEN
+            else ACTION_PORTION_TOSSED,
+            "by": by,
+            "by_name": by_name,
+            "portion": target.get("n"),
+            "portions_total": len(portions),
+            # The item stays live; item_id lets restore find it again and the
+            # snapshot keeps the history readable if it later disappears.
+            "item_id": item["id"],
+            "item": {**item, "portions": [dict(p) for p in portions]},
+        }
+        # Stamped on the live portion (after the snapshot) so the panel can
+        # offer per-portion undo straight from state, without a history query.
+        target["event_id"] = event["id"]
+        self.history.insert(0, event)
+        if len(self.history) > MAX_HISTORY:
+            del self.history[MAX_HISTORY:]
+        return {
+            "event": event,
+            "portion": target.get("n"),
+            "remaining": remaining,
+            "completed": False,
+            "item": item,
+        }
+
+    @staticmethod
+    def _reopen_portion(item: dict[str, Any], portion: int | None) -> None:
+        if portion is None:
+            return
+        for p in item.get("portions") or []:
+            if p.get("n") == portion:
+                p["status"] = "open"
+                p.pop("ts", None)
+                p.pop("by", None)
+                p.pop("by_name", None)
+                p.pop("event_id", None)
+                return
+
     def restore_item(self, event_id: str) -> dict[str, Any] | None:
-        """Undo a completion: put the item back and drop its history event."""
+        """Undo a completion or portion event, dropping it from history."""
         for i, ev in enumerate(self.history):
-            if ev.get("id") == event_id:
-                snap = ev.get("item") or {}
-                if not snap.get("id"):
+            if ev.get("id") != event_id:
+                continue
+            if ev.get("action") in PORTION_ACTIONS:
+                # Portion undo: the item must still be live.
+                item = self.items.get(ev.get("item_id"))
+                if item is None:
                     return None
-                item = dict(snap)
+                self._reopen_portion(item, ev.get("portion"))
                 item["updated_at"] = dt_util.now().isoformat()
-                self.items[item["id"]] = item
                 del self.history[i]
                 return item
+            snap = ev.get("item") or {}
+            if not snap.get("id"):
+                return None
+            item = dict(snap)
+            # An auto-completion consumed its final portion in the snapshot;
+            # undoing it puts the item back with that portion open again.
+            self._reopen_portion(item, ev.get("portion"))
+            item["updated_at"] = dt_util.now().isoformat()
+            self.items[item["id"]] = item
+            del self.history[i]
+            return item
         return None
+
+    def delete_history_event(self, event_id: str) -> bool:
+        """Permanently drop one event from the log (no restore, no trace)."""
+        for i, ev in enumerate(self.history):
+            if ev.get("id") == event_id:
+                del self.history[i]
+                return True
+        return False
 
     def history_page(self, limit: int = 25, offset: int = 0) -> dict[str, Any]:
         """A slice of the history (newest first) plus the total count."""

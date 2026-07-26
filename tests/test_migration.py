@@ -73,10 +73,19 @@ class TestMigration(unittest.TestCase):
         twice = migrate({"items": [dict(x) for x in once["items"]]})
         self.assertEqual(once, twice)
 
-    def test_v2_data_passes_through_untouched(self):
+    def test_v2_identifiers_stay_untouched_but_portions_are_added(self):
         v2 = {"items": [{"id": "n1", "location": "fridge", "category": "dairy"}]}
         out = migrate({"items": [dict(v2["items"][0])]}, major=2)
-        self.assertEqual(out, v2)
+        item = out["items"][0]
+        self.assertEqual(item["location"], "fridge")
+        self.assertEqual(item["category"], "dairy")
+        self.assertEqual(item["portions"], [{"n": 1, "status": "open"}])
+
+    def test_v3_data_passes_through_untouched(self):
+        v3 = {"items": [{"id": "n1", "location": "fridge",
+                         "portions": [{"n": 1, "status": "eaten"}]}]}
+        out = migrate({"items": [dict(v3["items"][0])]}, major=3)
+        self.assertEqual(out, v3)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,13 @@ add_item:
       example: 2 bakjes
       selector:
         text:
+    portions:
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 24
+          mode: box
 
 update_item:
   fields:
@@ -49,6 +56,29 @@ complete_item:
         text:
     action:
       required: true
+      selector:
+        select:
+          options:
+            - eaten
+            - tossed
+          translation_key: complete_action
+
+eat_portion:
+  fields:
+    id:
+      selector:
+        text:
+    code:
+      example: AB12-2
+      selector:
+        text:
+    portion:
+      selector:
+        number:
+          min: 1
+          max: 24
+          mode: box
+    action:
       selector:
         select:
           options:

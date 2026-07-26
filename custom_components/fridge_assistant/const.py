@@ -6,17 +6,18 @@ from typing import Any, Final
 
 DOMAIN: Final = "fridge_assistant"
 
-# Storage. Version 2 = English enum identifiers (fridge/freezer/pantry,
-# dish, dairy/…); version 1 stored the original Dutch ones. See
-# FridgeDataStore._async_migrate_func in store.py.
-STORAGE_VERSION: Final = 2
+# Storage. Version 3 = every item/history snapshot carries a `portions` list
+# (default one open portion). Version 2 = English enum identifiers
+# (fridge/freezer/pantry, dish, dairy/…); version 1 stored the original Dutch
+# ones. See FridgeDataStore._async_migrate_func in store.py.
+STORAGE_VERSION: Final = 3
 STORAGE_KEY: Final = "fridge_assistant.data"
 
 # Frontend panel / static
 URL_BASE: Final = "/fridge_assistant_static"
 
 # Keep in sync with manifest.json; busts the panel.js browser cache.
-VERSION: Final = "0.2.2"
+VERSION: Final = "0.3.0"
 PANEL_URL_PATH: Final = "fridge-assistant"
 PANEL_TITLE: Final = "Koelkast"
 PANEL_TITLE_EN: Final = "Fridge"
@@ -182,6 +183,13 @@ PRINTER_MODEL: Final = "DYMO LabelWriter 550"
 ACTION_EATEN: Final = "eaten"
 ACTION_TOSSED: Final = "tossed"
 HISTORY_ACTIONS: Final = (ACTION_EATEN, ACTION_TOSSED)
+# Portion-level events: one portion of a still-live item was consumed. Kept
+# out of HISTORY_ACTIONS on purpose — complete_item only accepts eaten/tossed.
+ACTION_PORTION_EATEN: Final = "portion_eaten"
+ACTION_PORTION_TOSSED: Final = "portion_tossed"
+PORTION_ACTIONS: Final = (ACTION_PORTION_EATEN, ACTION_PORTION_TOSSED)
+# Sanity cap on how many portions one batch can be split into.
+MAX_PORTIONS: Final = 24
 # Rolling window kept in storage. The whole store blob is loaded in memory and
 # rewritten on every save, so history is capped rather than unbounded.
 MAX_HISTORY: Final = 500
@@ -191,6 +199,7 @@ EVENT_EXPIRING: Final = "fridge_assistant_expiring"
 EVENT_ITEM_ADDED: Final = "fridge_assistant_item_added"
 EVENT_ITEM_REMOVED: Final = "fridge_assistant_item_removed"
 EVENT_ITEM_COMPLETED: Final = "fridge_assistant_item_completed"
+EVENT_PORTION_CONSUMED: Final = "fridge_assistant_portion_consumed"
 
 # Persistent notification id
 NOTIFICATION_ID: Final = "fridge_assistant_expiring"
@@ -240,12 +249,18 @@ _SHARED_STRINGS: dict[str, dict[str, str]] = {
         "not_loaded": "Fridge Assistant niet geladen.",
         "item_not_found": "Item {id} niet gevonden.",
         "cannot_restore": "Kan niet herstellen.",
+        "portion_not_found": "Portie {n} bestaat niet (meer).",
+        "portion_consumed": "Portie {n} is al opgegeten of weggegooid.",
+        "no_open_portions": "Geen open porties meer.",
     },
     "en": {
         "not_configured": "Fridge Assistant is not configured (anymore).",
         "not_loaded": "Fridge Assistant not loaded.",
         "item_not_found": "Item {id} not found.",
         "cannot_restore": "Cannot restore.",
+        "portion_not_found": "Portion {n} does not exist (anymore).",
+        "portion_consumed": "Portion {n} was already eaten or tossed.",
+        "no_open_portions": "No open portions left.",
     },
 }
 

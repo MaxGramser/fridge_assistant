@@ -1,11 +1,30 @@
-"""Item code generation (XX00 style, e.g. AB12)."""
+"""Item code generation (XX00 style, e.g. AB12) and portion sub-codes."""
 
 from __future__ import annotations
 
 import random
+import re
 from collections.abc import Iterable
 
 from .const import CODE_FORMAT_DIGITS
+
+# A portion sub-code is the item code plus "-<n>", e.g. AB12-3. The suffix is
+# only used for items split into more than one portion.
+_PORTION_RE = re.compile(r"^(.*?)-(\d{1,2})$")
+
+
+def portion_code(code: str, n: int) -> str:
+    """Sub-code printed on / scanned from an individual portion sticker."""
+    return f"{code}-{n}"
+
+
+def split_portion_code(value: str) -> tuple[str, int | None]:
+    """Split ``"AB12-3"`` into ``("AB12", 3)``; plain codes give ``(code, None)``."""
+    raw = str(value or "").strip().upper()
+    match = _PORTION_RE.match(raw)
+    if match:
+        return match.group(1), int(match.group(2))
+    return raw, None
 
 # Exclude visually ambiguous letters (I, O, Q) so codes read cleanly on a sticker.
 _LETTERS = "ABCDEFGHJKLMNPRSTUVWXYZ"
