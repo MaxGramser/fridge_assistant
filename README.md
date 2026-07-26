@@ -289,18 +289,20 @@ Both expiry sensors expose the matching item list (code, name, days left, ...) a
 ## Optional: Label Printer add-on
 
 The integration works completely without a printer — stickers are cosmetic. If you want physical
-labels, install the companion **Label Printer** add-on from
-[`addon/label_printer`](addon/label_printer):
+labels, install the companion **Label Printer** add-on alongside it. It now lives in its own
+repository: **[MaxGramser/label-printer-addon](https://github.com/MaxGramser/label-printer-addon)**.
+Add that URL under *Settings → Add-ons → Add-on store → ⋮ → Repositories*, install *Label Printer*,
+and pick which label roll is loaded (by DYMO part number or Zebra size).
 
 - Generic by design: it accepts any PNG/PDF over HTTP and prints it via CUPS — the integration does
   all the rendering, so the add-on itself has no Fridge Assistant-specific logic.
-- Drives **DYMO LabelWriter** printers over USB (`printer_model: auto` detects LW400/450/550 and
-  picks the matching driver).
-- Tested hardware: **DYMO LabelWriter 550** and **LabelWriter 400/450**, with **99014** labels
-  (54 × 101 mm).
+- Auto-detects **DYMO LabelWriter** and **Zebra** printers over USB, side by side.
+- Tested hardware: **DYMO LabelWriter 400/450/550** with **99014** labels (54 × 101 mm) and a
+  **Zebra ZD220D** with 104 × 159 mm shipping labels.
 
-See [`addon/label_printer/DOCS.md`](addon/label_printer/DOCS.md) for installation, options, and the
-HTTP API.
+After installing, set **Enable label printer** in this integration's options (and adjust the add-on
+URL if yours differs — an add-on installed from the repository gets a hostname like
+`http://xxxxxxxx-label-printer:8000`, shown on the add-on's page).
 
 ## Data & privacy
 
@@ -320,7 +322,8 @@ HTTP API.
   and notes stay Dutch regardless of the UI language.
 - Live camera barcode scanning requires a secure context (HTTPS); it degrades gracefully to
   photo-capture or manual entry otherwise.
-- The label printer add-on has only been tested against DYMO LabelWriter 400/450/550 with 99014 labels.
+- The label printer add-on has been tested against DYMO LabelWriter 400/450/550 (99014 labels) and a
+  Zebra ZD220D (104 × 159 mm); other CUPS-supported label printers may work but are unverified.
 
 ## Architecture (for contributors)
 
@@ -350,9 +353,11 @@ custom_components/fridge_assistant/
     ├── seed_templates.json                   # the 99-template shelf-life database
     └── fonts/                                  # bundled fonts for label rendering
 
-addon/label_printer/        # the optional, generic CUPS-based print add-on
 brands/                       # icon/logo assets (Home Assistant brands format)
 ```
+
+The optional, generic CUPS-based print add-on lives in its own repository:
+[MaxGramser/label-printer-addon](https://github.com/MaxGramser/label-printer-addon).
 
 Backend changes require a full Home Assistant restart (`ha core restart`) — a config entry reload does
 not re-import Python modules. Frontend (`panel.js`) and label design changes only need a browser/app
