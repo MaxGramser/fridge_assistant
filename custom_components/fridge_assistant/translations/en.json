@@ -190,6 +190,10 @@
       "fields": {
         "id": {
           "name": "Item ID"
+        },
+        "printer": {
+          "name": "Printer",
+          "description": "Add-on print queue to use (e.g. \"dymo\" or \"zebra\"). Empty = the add-on's default printer."
         }
       }
     },

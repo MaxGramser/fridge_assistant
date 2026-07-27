@@ -190,6 +190,10 @@
       "fields": {
         "id": {
           "name": "Item-ID"
+        },
+        "printer": {
+          "name": "Printer",
+          "description": "Printerwachtrij van de add-on (bv. \"dymo\" of \"zebra\"). Leeg = de standaardprinter van de add-on."
         }
       }
     },

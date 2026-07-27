@@ -19,7 +19,7 @@ STORAGE_KEY: Final = "fridge_assistant.data"
 URL_BASE: Final = "/fridge_assistant_static"
 
 # Keep in sync with manifest.json; busts the panel.js browser cache.
-VERSION: Final = "0.4.0"
+VERSION: Final = "0.5.0"
 PANEL_URL_PATH: Final = "fridge-assistant"
 PANEL_TITLE: Final = "Koelkast"
 PANEL_TITLE_EN: Final = "Fridge"

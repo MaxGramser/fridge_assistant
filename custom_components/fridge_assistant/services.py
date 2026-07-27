@@ -24,6 +24,7 @@ from .const import (
     ACTION_EATEN,
     ACTION_TOSSED,
     CONF_AI_ENABLED,
+    CONF_PRINTER_ENABLED,
     DOMAIN,
     EVENT_ITEM_ADDED,
     EVENT_ITEM_COMPLETED,
@@ -109,6 +110,7 @@ EXPORT_LABEL_SCHEMA = vol.Schema(
         vol.Optional("portion"): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("path"): cv.string,
         vol.Optional("reload", default=False): cv.boolean,
+        vol.Optional("printer"): cv.string,
     }
 )
 
@@ -163,7 +165,12 @@ EAT_PORTION_SCHEMA = vol.Schema(
 
 ESTIMATE_SCHEMA = vol.Schema({vol.Required("name"): cv.string})
 
-PRINT_STICKER_SCHEMA = vol.Schema({vol.Required("id"): cv.string})
+PRINT_STICKER_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): cv.string,
+        vol.Optional("printer"): cv.string,
+    }
+)
 
 
 def _get_runtime(hass: HomeAssistant) -> FridgeRuntime:
@@ -336,7 +343,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         item = runtime.store.items.get(call.data["id"])
         if item is None:
             raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
-        result = await async_print_item(hass, item, runtime.options)
+        result = await async_print_item(
+            hass, item, runtime.options, printer=call.data.get("printer")
+        )
         if not result.get("printed"):
             lang = resolve_language(hass)
             reasons = {
@@ -359,7 +368,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         return result
 
     async def handle_export_label(call: ServiceCall) -> ServiceResponse:
-        from .printer import async_render_png
+        from .printer import async_canvas_for_printer, async_render_png
 
         runtime = _get_runtime(hass)
         item_id = call.data.get("item_id")
@@ -372,10 +381,18 @@ def async_setup_services(hass: HomeAssistant) -> None:
         else:
             item = dict(_SAMPLE_ITEM)
         path = call.data.get("path") or "/share/fridge-assistant/_preview/label.png"
+        # Same canvas rule as the live preview: size for the target printer
+        # when one is named or printing is enabled, else the design canvas.
+        canvas = None
+        if call.data.get("printer") or runtime.options.get(CONF_PRINTER_ENABLED):
+            canvas = await async_canvas_for_printer(
+                hass, runtime.options, call.data.get("printer")
+            )
         png = await async_render_png(
             hass, item,
             portion=call.data.get("portion"),
             reload=call.data.get("reload", False),
+            canvas=canvas,
         )
 
         def _write() -> int:

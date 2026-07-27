@@ -78,6 +78,7 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_lookup_barcode)
     websocket_api.async_register_command(hass, ws_print_sticker)
     websocket_api.async_register_command(hass, ws_render_label)
+    websocket_api.async_register_command(hass, ws_get_printers)
 
 
 def _person_pictures(hass: HomeAssistant) -> dict[str, str]:
@@ -653,6 +654,7 @@ async def ws_unhide_template(hass, connection, msg) -> None:
         vol.Required("type"): f"{DOMAIN}/print_sticker",
         vol.Required("item_id"): str,
         vol.Optional("portion"): int,
+        vol.Optional("printer"): str,
     }
 )
 @websocket_api.async_response
@@ -667,7 +669,8 @@ async def ws_print_sticker(hass, connection, msg) -> None:
         connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
     result = await async_print_item(
-        hass, item, runtime.options, portion=msg.get("portion")
+        hass, item, runtime.options,
+        portion=msg.get("portion"), printer=msg.get("printer"),
     )
     connection.send_result(msg["id"], result)
 
@@ -678,12 +681,18 @@ async def ws_print_sticker(hass, connection, msg) -> None:
         vol.Optional("item_id"): str,
         vol.Optional("item"): dict,
         vol.Optional("portion"): int,
+        vol.Optional("printer"): str,
     }
 )
 @websocket_api.async_response
 async def ws_render_label(hass, connection, msg) -> None:
-    """Render a label to a base64 PNG for on-screen preview."""
-    from .printer import async_render_png
+    """Render a label to a base64 PNG for on-screen preview.
+
+    The preview is sized for the target printer's loaded label (``printer``
+    picks a queue, otherwise the add-on default), so what you see is exactly
+    what comes out.
+    """
+    from .printer import async_canvas_for_printer, async_render_png
 
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
@@ -698,12 +707,50 @@ async def ws_render_label(hass, connection, msg) -> None:
                 shared_text(hass, "item_not_found", id=msg.get("item_id")),
             )
             return
+    # Only consult the add-on when printing is on (or a queue was named):
+    # without an add-on the design-canvas fallback renders instantly.
+    canvas = None
+    if msg.get("printer") or runtime.options.get(CONF_PRINTER_ENABLED):
+        canvas = await async_canvas_for_printer(
+            hass, runtime.options, msg.get("printer")
+        )
     try:
-        png = await async_render_png(hass, item, portion=msg.get("portion"))
+        png = await async_render_png(
+            hass, item, portion=msg.get("portion"), canvas=canvas
+        )
     except Exception as err:  # noqa: BLE001
         connection.send_error(msg["id"], "render_failed", str(err))
         return
     connection.send_result(
         msg["id"],
         {"png_base64": base64.b64encode(png).decode("ascii"), "code": item.get("code")},
+    )
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/get_printers"})
+@websocket_api.async_response
+async def ws_get_printers(hass, connection, msg) -> None:
+    """The add-on's live printer list, for the print modal's queue picker."""
+    from .printer import async_get_printers
+
+    runtime = _runtime_or_error(hass, connection, msg)
+    if runtime is None:
+        return
+    data = await async_get_printers(hass, runtime.options, force=True)
+    printers = [
+        {
+            "name": p.get("name"),
+            "kind": p.get("kind"),
+            "model": p.get("model"),
+            "connected": bool(p.get("connected")),
+            "label": p.get("label"),
+            "media": p.get("media"),
+            "native_px": p.get("native_px"),
+            "dpi": p.get("dpi"),
+            "default": bool(p.get("default")),
+        }
+        for p in (data or {}).get("printers", [])
+    ]
+    connection.send_result(
+        msg["id"], {"available": bool(data), "printers": printers}
     )

@@ -1,10 +1,15 @@
-"""Render a beautiful food label for the DYMO 99014 label.
+"""Render a beautiful food label, natively sized for the target printer.
 
-Tested with a **DYMO LabelWriter 550** and **99014** labels (54 x 101 mm).
+The design reference is the DYMO 99014 label (54 x 101 mm, portrait, 300 dpi
+= 642 x 1192 px) — on that canvas the output is pixel-identical to the
+original fixed-size renderer. Pass ``ctx["canvas"] = {"w", "h", "dpi"}`` (the
+printer's ``native_px`` from the Label Printer add-on's ``GET /printers``) to
+render for any other label: the layout scales with the smaller of the
+width/height ratios so nothing ever overflows, while text lines and the
+contents section use whatever extra room the label offers.
 
-The label is rendered as a portrait PNG at the printer's native 300 dpi
-(642 x 1192 px). This module is pure Pillow with no Home Assistant imports so
-it can be exercised and previewed in isolation.
+This module is pure Pillow with no Home Assistant imports so it can be
+exercised and previewed in isolation.
 """
 
 from __future__ import annotations
@@ -18,8 +23,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 FONT_DIR = os.path.join(os.path.dirname(__file__), "data", "fonts")
 
-# --- 99014 geometry -------------------------------------------------------
+# --- reference geometry (99014) -------------------------------------------
 # 54 x 101 mm, portrait, 300 dpi. CUPS media name = w154h286 (points).
+# These are the *design* dimensions every other canvas scales from — and the
+# fallback canvas when no printer info is available.
 DPI = 300
 LABEL_W = 642
 LABEL_H = 1192
@@ -226,7 +233,7 @@ def _fmt_date(d, lang):
 
 # --- main entry ------------------------------------------------------------
 def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Image.Image:
-    """Render ``item`` into a 642x1192 grayscale label image."""
+    """Render ``item`` into a grayscale label image sized for the canvas."""
     ctx = ctx or {}
     lang = ctx.get("lang", "en")
     s = STRINGS.get(lang, STRINGS["en"])
@@ -234,65 +241,79 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     if isinstance(today, str):
         today = _parse(today) or date.today()
 
+    canvas = ctx.get("canvas") or {}
+    W = int(canvas.get("w") or LABEL_W)
+    H = int(canvas.get("h") or LABEL_H)
+    # Everything fixed (type, margins, bars) follows the smaller of the two
+    # ratios so no section can overflow a stubbier label; the full width is
+    # always used, so wider labels get longer text lines instead of a
+    # stretched design. On the reference canvas sc == 1.0 and the output is
+    # pixel-identical to the original fixed-size renderer.
+    sc = min(W / LABEL_W, H / LABEL_H)
+
+    def S(v: float) -> int:
+        return max(1, round(v * sc))
+
     location_label = (ctx.get("location_label") or item.get("location") or "").upper()
     kind_label = (ctx.get("kind_label") or "").upper()
 
-    img = Image.new("L", (LABEL_W, LABEL_H), WHITE)
+    img = Image.new("L", (W, H), WHITE)
     d = ImageDraw.Draw(img)
 
-    MX = 34
-    inner_w = LABEL_W - 2 * MX
-    cx = LABEL_W // 2
+    MX = S(34)
+    inner_w = W - 2 * MX
+    cx = W // 2
 
     # Outer frame
-    d.rounded_rectangle([12, 12, LABEL_W - 13, LABEL_H - 13],
-                        radius=30, outline=BLACK, width=3)
+    d.rounded_rectangle([S(12), S(12), W - S(13), H - S(13)],
+                        radius=S(30), outline=BLACK, width=max(2, S(3)))
 
-    y = 40
+    y = S(40)
 
     # 1) Location banner (inverted bar) --------------------------------------
-    bar_h = 92
-    d.rounded_rectangle([MX, y, LABEL_W - MX, y + bar_h], radius=20, fill=BLACK)
+    bar_h = S(92)
+    d.rounded_rectangle([MX, y, W - MX, y + bar_h], radius=S(20), fill=BLACK)
     # Compact banner text: first word of the localized label, so
     # "Buiten koelkast" -> "BUITEN" and "Fridge" -> "FRIDGE".
     loc_compact = (location_label.split()[0] if location_label else "").upper()
     # Kind chip on the right — computed first so the location text can dodge it.
-    chip_left = LABEL_W - MX - 22
+    chip_left = W - MX - S(22)
     if kind_label:
-        kf = sans_bold(26)
+        kf = sans_bold(S(26))
         kw = d.textlength(kind_label, font=kf)
-        chip_pad = 16
+        chip_pad = S(16)
         chip_w = kw + chip_pad * 2
-        chip_x = LABEL_W - MX - 22 - chip_w
-        d.rounded_rectangle([chip_x, y + 24, chip_x + chip_w, y + bar_h - 24],
-                            radius=13, outline=WHITE, width=2)
+        chip_x = W - MX - S(22) - chip_w
+        d.rounded_rectangle([chip_x, y + S(24), chip_x + chip_w, y + bar_h - S(24)],
+                            radius=S(13), outline=WHITE, width=max(1, S(2)))
         _, kh, _, kt = _text_size(d, kind_label, kf)
         d.text((chip_x + chip_pad, y + (bar_h - kh) / 2 - kt), kind_label,
                font=kf, fill=WHITE)
         chip_left = chip_x
     # Location text, auto-fit into the space left of the chip.
-    loc_avail = chip_left - (MX + 28) - 20
+    loc_avail = chip_left - (MX + S(28)) - S(20)
     loc_font, _ = _fit_font(d, loc_compact or " ", cond_bold, loc_avail,
-                            start=52, min_size=30)
+                            start=S(52), min_size=S(30))
     _, lh, _, lt = _text_size(d, loc_compact or " ", loc_font)
-    d.text((MX + 28, y + (bar_h - lh) / 2 - lt), loc_compact,
+    d.text((MX + S(28), y + (bar_h - lh) / 2 - lt), loc_compact,
            font=loc_font, fill=WHITE)
-    y += bar_h + 26
+    y += bar_h + S(26)
 
     # 2) Item name -----------------------------------------------------------
     name = str(item.get("name") or "—").strip()
-    name_font, _ = _fit_font(d, name, cond_bold, inner_w, start=104, min_size=52)
+    name_font, _ = _fit_font(d, name, cond_bold, inner_w, start=S(104),
+                             min_size=S(52))
     lines = _wrap(d, name, name_font, inner_w, max_lines=2)
     if len(lines) > 1:
         name_font, _ = _fit_font(d, max(lines, key=len), cond_bold,
-                                 inner_w, start=name_font.size, min_size=44)
+                                 inner_w, start=name_font.size, min_size=S(44))
         lines = _wrap(d, name, name_font, inner_w, max_lines=2)
     for line in lines:
         lw = d.textlength(line, font=name_font)
         asc, desc = name_font.getmetrics()
         d.text((cx - lw / 2, y), line, font=name_font, fill=BLACK)
-        y += asc + desc + 2
-    y += 18
+        y += asc + desc + S(2)
+    y += S(18)
 
     # 3) Hero code + barcode -------------------------------------------------
     # Multi-portion items print one sticker per portion with a sub-code
@@ -306,30 +327,30 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
         code_heading = s["portion"].format(n=portion, total=portions_total)
     else:
         code_heading = s["code"]
-    hero_top = y
-    d.line([MX, y, LABEL_W - MX, y], fill=BLACK, width=2)
-    y += 22
-    _draw_tracked(d, (0, y), code_heading, sans_bold(26), tracking=10,
+    d.line([MX, y, W - MX, y], fill=BLACK, width=max(1, S(2)))
+    y += S(22)
+    _draw_tracked(d, (0, y), code_heading, sans_bold(S(26)), tracking=S(10),
                   anchor_center=cx)
-    y += 40
-    code_font, _ = _fit_font(d, code, mono_bold, inner_w - 40, start=176,
-                             min_size=90)
+    y += S(40)
+    code_font, _ = _fit_font(d, code, mono_bold, inner_w - S(40), start=S(176),
+                             min_size=S(90))
     cw, ch, cl, ct = _text_size(d, code, code_font)
     d.text((cx - cw / 2 - cl, y), code, font=code_font, fill=BLACK)
-    y += ch + 56
-    _draw_barcode(d, code, cx, y, height=108, narrow=3, ratio=3)
-    y += 108 + 24
-    d.line([MX, y, LABEL_W - MX, y], fill=BLACK, width=2)
-    y += 22
-    del hero_top
+    y += ch + S(56)
+    bar_height = S(108)
+    _draw_barcode(d, code, cx, y, height=bar_height,
+                  narrow=max(2, round(3 * sc)), ratio=3)
+    y += bar_height + S(24)
+    d.line([MX, y, W - MX, y], fill=BLACK, width=max(1, S(2)))
+    y += S(22)
 
     # 4) Stored date ---------------------------------------------------------
     added = _parse(item.get("added_date"))
     added_str = _fmt_date(added, lang) or s["no_date"]
-    _draw_tracked(d, (MX, y), s["added"], sans_bold(26), tracking=6)
-    y += 38
-    d.text((MX, y), added_str, font=sans_bold(46), fill=BLACK)
-    y += 66
+    _draw_tracked(d, (MX, y), s["added"], sans_bold(S(26)), tracking=S(6))
+    y += S(38)
+    d.text((MX, y), added_str, font=sans_bold(S(46)), fill=BLACK)
+    y += S(66)
 
     # 5) Eat-before block — the actionable hero, always inverted -------------
     # (A physical label is only ever printed for a still-good item, and a
@@ -337,38 +358,40 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     # keep the strong black "EAT BEFORE <date>" panel.)
     expiry = _parse(item.get("expiry_date"))
     exp_str = _fmt_date(expiry, lang) or s["no_date"]
-    label_font = sans_bold(26)
-    exp_font, _ = _fit_font(d, exp_str, sans_bold, inner_w - 56, start=58,
-                            min_size=34)
+    label_font = sans_bold(S(26))
+    exp_font, _ = _fit_font(d, exp_str, sans_bold, inner_w - S(56), start=S(58),
+                            min_size=S(34))
     # Measure both lines and size the box so top and bottom padding are equal.
     _, lh2, _, lt2 = _text_size(d, s["eat_before"], label_font)
     _, ehh, _, et = _text_size(d, exp_str, exp_font)
-    gap_ld = 16      # gap between the "EET VOOR" label and the big date
-    pad = 24         # equal top/bottom padding inside the box
+    gap_ld = S(16)   # gap between the "EET VOOR" label and the big date
+    pad = S(24)      # equal top/bottom padding inside the box
     content_h = lh2 + gap_ld + ehh
     box_h = content_h + 2 * pad
     box_top = y
-    d.rounded_rectangle([MX, box_top, LABEL_W - MX, box_top + box_h],
-                        radius=20, fill=BLACK)
+    d.rounded_rectangle([MX, box_top, W - MX, box_top + box_h],
+                        radius=S(20), fill=BLACK)
     fg = WHITE
     ly = box_top + pad
-    _draw_tracked(d, (MX + 28, ly - lt2), s["eat_before"], label_font,
-                  fill=fg, tracking=6)
+    _draw_tracked(d, (MX + S(28), ly - lt2), s["eat_before"], label_font,
+                  fill=fg, tracking=S(6))
     dy = ly + lh2 + gap_ld
-    d.text((MX + 28, dy - et), exp_str, font=exp_font, fill=fg)
-    y = box_top + box_h + 24
+    d.text((MX + S(28), dy - et), exp_str, font=exp_font, fill=fg)
+    y = box_top + box_h + S(24)
 
     # 6) Contents (only as much as fits above the footer) --------------------
     contents = str(item.get("contents") or "").strip()
     quantity = str(item.get("quantity") or "").strip()
     # Reserve a taller footer band when there's a quantity to show.
-    footer_top = LABEL_H - (132 if quantity else 70)
-    if contents and y < footer_top - 56:
-        _draw_tracked(d, (MX, y), s["contents"], sans_bold(26), tracking=6)
-        y += 40
-        cfont = sans(38)
-        line_h = 46
-        max_lines = max(1, min(3, int((footer_top - y) // line_h)))
+    footer_top = H - (S(132) if quantity else S(70))
+    if contents and y < footer_top - S(56):
+        _draw_tracked(d, (MX, y), s["contents"], sans_bold(S(26)), tracking=S(6))
+        y += S(40)
+        cfont = sans(S(38))
+        line_h = S(46)
+        # Taller labels simply fit more lines; cap so contents never becomes
+        # the dominant section.
+        max_lines = max(1, min(8, int((footer_top - y) // line_h)))
         for line in _wrap(d, contents, cfont, inner_w, max_lines=max_lines):
             d.text((MX, y), line, font=cfont, fill=BLACK)
             y += line_h
@@ -377,25 +400,26 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     # It replaces the old label-type stamp because it's what you actually want
     # to read at a glance. Falls back to the brand line when there's no amount.
     if quantity:
-        line_y = LABEL_H - 126
-        d.line([MX, line_y, LABEL_W - MX, line_y], fill=BLACK, width=2)
-        _draw_tracked(d, (MX, line_y + 16), s["servings"], sans_bold(26),
-                      tracking=6)
-        qfont, _ = _fit_font(d, quantity, sans_bold, inner_w, start=54,
-                             min_size=32)
+        line_y = H - S(126)
+        d.line([MX, line_y, W - MX, line_y], fill=BLACK, width=max(1, S(2)))
+        _draw_tracked(d, (MX, line_y + S(16)), s["servings"], sans_bold(S(26)),
+                      tracking=S(6))
+        qfont, _ = _fit_font(d, quantity, sans_bold, inner_w, start=S(54),
+                             min_size=S(32))
         _, _, _, qt = _text_size(d, quantity, qfont)
-        d.text((MX, line_y + 54 - qt), quantity, font=qfont, fill=BLACK)
+        d.text((MX, line_y + S(54) - qt), quantity, font=qfont, fill=BLACK)
     else:
-        foot_y = LABEL_H - 70
-        d.line([MX, foot_y - 16, LABEL_W - MX, foot_y - 16], fill=BLACK, width=2)
-        _draw_tracked(d, (0, foot_y), s["brand"], sans_bold(24), tracking=4,
+        foot_y = H - S(70)
+        d.line([MX, foot_y - S(16), W - MX, foot_y - S(16)], fill=BLACK,
+               width=max(1, S(2)))
+        _draw_tracked(d, (0, foot_y), s["brand"], sans_bold(S(24)), tracking=S(4),
                       anchor_center=cx)
 
     return img
 
 
 def render_png(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> bytes:
-    """Render ``item`` and return PNG bytes (300 dpi metadata set)."""
+    """Render ``item`` and return PNG bytes with the canvas dpi as metadata."""
     if item.get("_brand"):
         # Dev hook: reuse the reload-able render pipeline to generate the
         # integration's brand artwork (icon/logo). Not used at runtime.
@@ -406,8 +430,9 @@ def render_png(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> bytes
         importlib.reload(brand_render)
         return brand_render.render_asset_png(item)
     img = render_label(item, ctx)
+    dpi = int(((ctx or {}).get("canvas") or {}).get("dpi") or DPI)
     buf = io.BytesIO()
-    img.save(buf, format="PNG", dpi=(DPI, DPI))
+    img.save(buf, format="PNG", dpi=(dpi, dpi))
     return buf.getvalue()
 
 

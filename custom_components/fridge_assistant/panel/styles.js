@@ -264,6 +264,10 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
 .seg button{flex:1;border:none;background:none;color:var(--fa-text);padding:10px 4px;border-radius:11px;
   font-size:14px;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap;}
 .seg button.on{background:var(--fa-card);box-shadow:var(--fa-shadow-s);font-weight:800;}
+/* Printer picker in the print modal: queue name + label size per segment. */
+.pp-seg{margin:0 0 12px;}
+.pp-seg button{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;}
+.pp-seg ha-icon{--mdc-icon-size:16px;}
 
 /* ----------------------------------------------------------- suggestions */
 .suggest{margin:4px 0 6px;padding:12px;border-radius:16px;background:var(--fa-soft);

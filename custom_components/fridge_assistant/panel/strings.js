@@ -242,6 +242,8 @@ export const STRINGS = {
       `Label <b>${label}</b> (${size}, getest) · printer automatisch gedetecteerd. Print ${copies}× per keer.`,
     printerOffNote: (label, size) =>
       `Label <b>${label}</b> (${size}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij de instellingen.`,
+    printerLiveNote: (name, size, copies) =>
+      `Print via <b>${name}</b> op ${size}-labels${copies > 1 ? ` · ${copies}× per keer` : ""}. Voorbeeld = werkelijke labelmaat.`,
     printStickerModalTitle: "Sticker printen",
     previewLoading: "Voorbeeld laden…",
     closeBtn: "Sluiten",
@@ -474,6 +476,8 @@ export const STRINGS = {
       `Label <b>${label}</b> (${size}, tested) · printer detected automatically. Prints ${copies}× per tap.`,
     printerOffNote: (label, size) =>
       `Label <b>${label}</b> (${size}).<br>The printer is off — install the <b>Label Printer</b> add-on and enable it in the settings.`,
+    printerLiveNote: (name, size, copies) =>
+      `Prints via <b>${name}</b> on ${size} labels${copies > 1 ? ` · ${copies}× per tap` : ""}. Preview = actual label size.`,
     printStickerModalTitle: "Print sticker",
     previewLoading: "Loading preview…",
     closeBtn: "Close",

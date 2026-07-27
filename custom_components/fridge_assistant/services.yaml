@@ -109,5 +109,9 @@ print_sticker:
       required: true
       selector:
         text:
+    printer:
+      required: false
+      selector:
+        text:
 
 run_check:
