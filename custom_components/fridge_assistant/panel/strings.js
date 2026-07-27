@@ -238,12 +238,15 @@ export const STRINGS = {
     eventDeletedToast: "Definitief verwijderd",
     deleteFailedToast: "Verwijderen mislukt",
 
-    printerOnNote: (label, size, copies) =>
-      `Label <b>${label}</b> (${size}, getest) · printer automatisch gedetecteerd. Print ${copies}× per keer.`,
-    printerOffNote: (label, size) =>
-      `Label <b>${label}</b> (${size}).<br>De printer staat uit — installeer de <b>Label Printer</b> add-on en zet 'm aan bij de instellingen.`,
     printerLiveNote: (name, size, copies) =>
       `Print via <b>${name}</b> op ${size}-labels${copies > 1 ? ` · ${copies}× per keer` : ""}. Voorbeeld = werkelijke labelmaat.`,
+    printerSearching: "Printers zoeken…",
+    printerInviteNote: (url) =>
+      `Zin om dit als échte sticker te printen? Met de <a href="${url}" target="_blank" rel="noreferrer">Label Printer add-on</a> en een DYMO- of Zebra-labelprinter rolt dit voorbeeld er zo uit. Daarna printen aanzetten bij de instellingen.`,
+    printerAddonDownNote: (url) =>
+      `De Label Printer add-on is niet bereikbaar op <code>${url}</code>. Draait de add-on?`,
+    printerNoPrintersNote:
+      "De add-on draait, maar er is geen labelprinter gevonden op USB. Sluit de printer aan en zet 'm aan, herstart daarna de add-on.",
     printStickerModalTitle: "Sticker printen",
     previewLoading: "Voorbeeld laden…",
     closeBtn: "Sluiten",
@@ -472,12 +475,15 @@ export const STRINGS = {
     eventDeletedToast: "Deleted permanently",
     deleteFailedToast: "Delete failed",
 
-    printerOnNote: (label, size, copies) =>
-      `Label <b>${label}</b> (${size}, tested) · printer detected automatically. Prints ${copies}× per tap.`,
-    printerOffNote: (label, size) =>
-      `Label <b>${label}</b> (${size}).<br>The printer is off — install the <b>Label Printer</b> add-on and enable it in the settings.`,
     printerLiveNote: (name, size, copies) =>
       `Prints via <b>${name}</b> on ${size} labels${copies > 1 ? ` · ${copies}× per tap` : ""}. Preview = actual label size.`,
+    printerSearching: "Looking for printers…",
+    printerInviteNote: (url) =>
+      `Want this as a real sticker? With the <a href="${url}" target="_blank" rel="noreferrer">Label Printer add-on</a> and a DYMO or Zebra label printer this preview rolls right out. Then enable printing in the settings.`,
+    printerAddonDownNote: (url) =>
+      `The Label Printer add-on is unreachable at <code>${url}</code>. Is it running?`,
+    printerNoPrintersNote:
+      "The add-on is running, but no label printer was found on USB. Connect and power on the printer, then restart the add-on.",
     printStickerModalTitle: "Print sticker",
     previewLoading: "Loading preview…",
     closeBtn: "Close",

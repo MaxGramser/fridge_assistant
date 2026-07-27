@@ -229,6 +229,8 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
 .lp-slot.off .lp-check ha-icon{visibility:hidden;}
 .print-note{font-size:12.5px;color:var(--fa-muted);line-height:1.5;margin:12px 4px 0;text-align:center;}
 .print-note b{color:var(--fa-text);}
+.print-note a{color:var(--fa-text);font-weight:700;text-decoration:underline;text-underline-offset:2px;}
+.print-note code{font-size:11.5px;background:var(--fa-soft);padding:1px 5px;border-radius:6px;}
 
 /* ----------------------------------------------------------------- forms */
 .field{display:flex;flex-direction:column;gap:5px;margin:10px 0;}

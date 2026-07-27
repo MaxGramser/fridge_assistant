@@ -15,12 +15,14 @@
 import { esc } from "../lib/format.js";
 import { openPortions } from "./inspector.js";
 
+// Where to point people who don't have the (optional) print add-on yet.
+const ADDON_URL = "https://github.com/MaxGramser/label-printer-addon";
+
 export function printSticker(panel, id, itemHint = null, { portion = null } = {}) {
   // itemHint covers the just-added case: the state push may not have
   // landed yet, but the add response already has name/code/portions.
   const item = (panel._state.items || []).find((x) => x.id === id) || itemHint;
   const opts = panel._state.options || {};
-  const p = panel._state.printer || {};
   const copies = opts.label_copies || 1;
 
   const total = (item?.portions || []).length || 1;
@@ -30,9 +32,6 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
   const previewPortion = portion ?? (batch ? batchTargets[0] : null);
   const codeShown = previewPortion != null && total > 1 ? `${item?.code || ""}-${previewPortion}` : (item?.code || "");
 
-  const fallbackNote = opts.printer_enabled
-    ? panel.t("printerOnNote", esc(p.label || "99014"), esc(p.label_size || "54 × 101 mm"), copies)
-    : panel.t("printerOffNote", esc(p.label || "99014"), esc(p.label_size || "54 × 101 mm"));
   const printLabel = batch
     ? panel.t("printAllStickersBtn", batchTargets.length)
     : panel.t("printBtnLabel", copies);
@@ -49,7 +48,7 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
     </div>
     <div class="seg pp-seg" id="p-printers" hidden></div>
     <div class="label-preview${batch ? " multi" : ""}" id="p-preview"><div class="muted">${panel.t("previewLoading")}</div></div>
-    <div class="print-note" id="p-note">${fallbackNote}</div>
+    <div class="print-note" id="p-note"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="p-cancel">${panel.t("closeBtn")}</button>
       <button class="btn primary" id="p-print">${printLabel}</button>
@@ -64,13 +63,19 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
   let printers = [];
   let selPrinter = null;
   let previewToken = 0;
+  // Printability state machine: "off" (printing disabled in the settings),
+  // "searching" (discovery in flight), "down" (add-on unreachable),
+  // "none" (add-on up, no printer on USB), "ready".
+  let status = opts.printer_enabled ? "searching" : "off";
+
+  const canPrint = () => status === "ready";
 
   const syncPrintBtn = () => {
-    if (!batch || printing) return;
+    if (printing) return;
     const btn = q("#p-print");
     if (!btn) return;
-    btn.innerHTML = panel.t("printAllStickersBtn", selected.size);
-    btn.disabled = selected.size === 0;
+    if (batch) btn.innerHTML = panel.t("printAllStickersBtn", selected.size);
+    btn.disabled = !canPrint() || (batch && selected.size === 0);
   };
 
   const currentPrinter = () =>
@@ -86,10 +91,19 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
   const updateNote = () => {
     const note = q("#p-note");
     if (!note) return;
-    const live = currentPrinter();
-    note.innerHTML = live && opts.printer_enabled
-      ? panel.t("printerLiveNote", esc(live.name), esc(live.label || live.media || ""), copies)
-      : fallbackNote;
+    if (status === "off") {
+      note.innerHTML = panel.t("printerInviteNote", ADDON_URL);
+    } else if (status === "searching") {
+      note.innerHTML = panel.t("printerSearching");
+    } else if (status === "down") {
+      note.innerHTML = panel.t("printerAddonDownNote", esc(opts.printer_url || ""));
+    } else if (status === "none") {
+      note.innerHTML = panel.t("printerNoPrintersNote");
+    } else {
+      const live = currentPrinter();
+      note.innerHTML = panel.t("printerLiveNote",
+        esc(live.name), esc(live.label || live.media || ""), copies);
+    }
   };
 
   const renderPicker = () => {
@@ -160,16 +174,26 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
 
   (async () => {
     // Discover the live queues first so the first preview already renders at
-    // the right label size; a dead add-on just means no picker + fallback.
-    try {
-      const r = await panel._call("get_printers", {});
-      printers = (r.printers || []).filter((x) => x.connected);
-      const def = printers.find((x) => x.default) || printers[0];
-      selPrinter = def ? def.name : null;
-    } catch { /* add-on unreachable — keep the design-canvas preview */ }
+    // the right label size. Printing off = instant invite (no add-on call);
+    // a dead add-on or an empty USB bus each get their own honest note, with
+    // the print button disabled — the design-canvas preview always shows.
+    updateNote();
+    syncPrintBtn();
+    if (opts.printer_enabled) {
+      let up = false;
+      try {
+        const r = await panel._call("get_printers", {});
+        up = !!r.available;
+        printers = (r.printers || []).filter((x) => x.connected);
+        const def = printers.find((x) => x.default) || printers[0];
+        selPrinter = def ? def.name : null;
+      } catch { /* treated as unreachable below */ }
+      status = !up ? "down" : (printers.length ? "ready" : "none");
+    }
     if (!h.modal.isConnected) return;
     renderPicker();
     updateNote();
+    syncPrintBtn();
     loadPreviews();
   })();
 
@@ -190,6 +214,7 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
   };
 
   q("#p-print").addEventListener("click", async () => {
+    if (!canPrint()) return;
     const btn = q("#p-print");
     printing = true;
     btn.disabled = true; btn.textContent = panel.t("workingLabel");

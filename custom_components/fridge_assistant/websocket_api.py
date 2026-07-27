@@ -26,6 +26,8 @@ from .const import (
     CONF_OPENAI_KEY,
     ACTION_TOSSED,
     CONF_PRINTER_ENABLED,
+    CONF_PRINTER_URL,
+    DEFAULT_PRINTER_URL,
     CONF_WARN_DAYS,
     DOMAIN,
     HISTORY_ACTIONS,
@@ -154,6 +156,8 @@ def _serialize_state(hass: HomeAssistant, runtime: FridgeRuntime) -> dict[str, A
             "code_format": opts.get(CONF_CODE_FORMAT),
             "notify_enabled": bool(opts.get(CONF_NOTIFY_ENABLED)),
             "printer_enabled": bool(opts.get(CONF_PRINTER_ENABLED)),
+            "printer_url": (opts.get(CONF_PRINTER_URL)
+                            or DEFAULT_PRINTER_URL).strip().rstrip("/"),
             "label_copies": int(opts.get(CONF_LABEL_COPIES) or 1),
         },
         "printer": {
