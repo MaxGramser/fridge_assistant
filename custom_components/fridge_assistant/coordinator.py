@@ -13,6 +13,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ACTION_EATEN,
+    ACTION_TOSSED,
     CONF_AI_AGENT,
     CONF_AI_ENABLED,
     CONF_CODE_FORMAT,
@@ -35,6 +37,10 @@ from .const import (
     DEFAULT_WARN_DAYS,
     DOMAIN,
     EVENT_EXPIRING,
+    EVENT_ITEM_ADDED,
+    EVENT_ITEM_COMPLETED,
+    EVENT_ITEM_REMOVED,
+    EVENT_PORTION_CONSUMED,
     NOTIFICATION_ID,
     SIGNAL_UPDATED,
     location_label as get_location_label,
@@ -108,6 +114,153 @@ class FridgeRuntime:
         await self.store.async_save()
         async_dispatcher_send(self.hass, SIGNAL_UPDATED)
 
+    # ------------------------------------------------------------------
+    # Mutations shared by the websocket API and the HA services. Each one
+    # mutates the store, persists, and fires the public bus events — so the
+    # two surfaces can never drift apart in behaviour.
+    # ------------------------------------------------------------------
+
+    async def async_user_attrs(
+        self, user_id: str | None
+    ) -> tuple[str | None, str | None]:
+        """Resolve an HA user id (e.g. from a service context) to (id, name)."""
+        if not user_id:
+            return None, None
+        user = await self.hass.auth.async_get_user(user_id)
+        if user is None:
+            return None, None
+        return user.id, user.name
+
+    def _fire_completed(self, event: dict[str, Any]) -> None:
+        snap = event.get("item") or {}
+        self.hass.bus.async_fire(
+            EVENT_ITEM_COMPLETED,
+            {
+                "action": event["action"],
+                "by": event["by"],
+                "code": snap.get("code"),
+                "name": snap.get("name"),
+            },
+        )
+
+    async def async_add_item(
+        self,
+        data: dict[str, Any],
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Build, store and announce a new item."""
+        if by is not None:
+            # The authenticated caller wins over anything in the payload.
+            data = {**data, "added_by": by, "added_by_name": by_name}
+        item = self.store.build_item(data, self.code_format)
+        self.store.add_item(item)
+        await self.async_changed()
+        self.hass.bus.async_fire(
+            EVENT_ITEM_ADDED,
+            {"id": item["id"], "code": item["code"], "name": item["name"]},
+        )
+        return item
+
+    async def async_remove_item(self, item_id: str) -> dict[str, Any] | None:
+        item = self.store.remove_item(item_id)
+        if item is None:
+            return None
+        await self.async_changed()
+        self.hass.bus.async_fire(
+            EVENT_ITEM_REMOVED,
+            {"id": item["id"], "code": item["code"], "name": item["name"]},
+        )
+        return item
+
+    async def async_complete_item(
+        self,
+        item_id: str,
+        action: str,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Complete an item (eaten/tossed); None when the id is unknown."""
+        event = self.store.complete_item(item_id, action, by=by, by_name=by_name)
+        if event is None:
+            return None
+        await self.async_changed()
+        self._fire_completed(event)
+        return event
+
+    async def async_consume_portion(
+        self,
+        item_id: str,
+        portion: int | None = None,
+        action: str = ACTION_EATEN,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any] | str:
+        """Consume one portion; returns the store result or its error key."""
+        result = self.store.consume_portion(
+            item_id, portion=portion, action=action, by=by, by_name=by_name
+        )
+        if isinstance(result, str):
+            return result
+        await self.async_changed()
+        event = result["event"]
+        snap = event.get("item") or {}
+        self.hass.bus.async_fire(
+            EVENT_PORTION_CONSUMED,
+            {
+                "item_id": item_id,
+                "code": snap.get("code"),
+                "name": snap.get("name"),
+                "portion": result["portion"],
+                "remaining": result["remaining"],
+                "completed": result["completed"],
+            },
+        )
+        if result["completed"]:
+            self._fire_completed(event)
+        return result
+
+    async def async_set_portions(
+        self,
+        item_id: str,
+        total: int,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Resize a batch; announces the completion if shrinking finished it."""
+        result = self.store.set_portions(item_id, total, by=by, by_name=by_name)
+        if result is None:
+            return None
+        await self.async_changed()
+        if result["completed"] and result.get("completion_event"):
+            self._fire_completed(result["completion_event"])
+        return result
+
+    async def async_remove_expired(
+        self,
+        ids: list[str] | None = None,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Toss expired items (optionally a subset) into history as 'tossed'.
+
+        Explicit ids are intersected with the *currently* expired set, so a
+        stale caller (yesterday's list) can never throw away food that is
+        still good.
+        """
+        expired = {i["id"] for i in self.store.expired_items()}
+        targets = list(expired) if ids is None else [i for i in ids if i in expired]
+        removed: list[dict[str, Any]] = []
+        for iid in targets:
+            event = self.store.complete_item(
+                iid, ACTION_TOSSED, by=by, by_name=by_name
+            )
+            if event is not None:
+                removed.append(event["item"])
+        if removed:
+            await self.async_changed()
+        return removed
+
     async def async_run_expiry_check(self, notify: bool = True) -> list[dict[str, Any]]:
         """Compute expiring items, fire an event and manage the notification."""
         warn_days = int(self.options[CONF_WARN_DAYS])
@@ -132,6 +285,10 @@ class FridgeRuntime:
             else:
                 persistent_notification.async_dismiss(self.hass, NOTIFICATION_ID)
 
+        # Sensors compute "expired/expiring" from today's date but only render
+        # on this signal; without it they'd show yesterday's counts until the
+        # next CRUD edit.
+        async_dispatcher_send(self.hass, SIGNAL_UPDATED)
         return items
 
 

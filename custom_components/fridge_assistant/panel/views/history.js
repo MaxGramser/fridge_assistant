@@ -55,7 +55,7 @@ export function openHistory(panel) {
   const h = openSurface(panel, `
     <div class="modal-head">
       <div class="m-title"><h3>${panel.t("historyHeading")}</h3><div class="s-sub" id="hi-sub"></div></div>
-      <button class="icon-btn" id="hi-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="hi-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="tp-list" id="hi-list"><div class="loading">${panel.t("loading")}</div></div>
     <div class="modal-actions" id="hi-more-wrap" style="display:none">

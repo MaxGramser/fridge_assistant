@@ -149,6 +149,16 @@ def _fit_font(draw, text, font_factory, max_w, start, min_size=28, step=3):
     return font_factory(min_size), min_size
 
 
+def _ellipsize(draw, text, font, max_w):
+    """Hard-cap ``text`` to ``max_w``, ellipsizing when it doesn't fit."""
+    if draw.textlength(text, font=font) <= max_w:
+        return text
+    cut = text
+    while cut and draw.textlength(cut + "…", font=font) > max_w:
+        cut = cut[:-1]
+    return cut.rstrip() + "…"
+
+
 def _wrap(draw, text, font, max_w, max_lines):
     words = str(text).split()
     lines: list[str] = []
@@ -169,10 +179,10 @@ def _wrap(draw, text, font, max_w, max_lines):
         last = lines[-1]
         remaining = len(" ".join(words)) > len(" ".join(lines))
         if remaining:
-            while last and draw.textlength(last + "…", font=font) > max_w:
-                last = last[:-1]
-            lines[-1] = last.rstrip() + "…"
-    return lines
+            lines[-1] = _ellipsize(draw, last, font, max_w)
+    # A single unbreakable word can still exceed the line even after font
+    # fitting bottomed out; cap it rather than draw past the label edge.
+    return [_ellipsize(draw, line, font, max_w) for line in lines]
 
 
 # --- Code 39 barcode (self contained, scannable) ---------------------------
@@ -248,20 +258,32 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     canvas = ctx.get("canvas") or {}
     full_w = int(canvas.get("w") or LABEL_W)
     full_h = int(canvas.get("h") or LABEL_H)
+    dpi = int(canvas.get("dpi") or DPI)
     # The head cannot reach the whole sticker (DYMO: ~5.4 mm dead zone at the
     # leading edge, ~1-1.5 mm sides). The add-on reports the reachable rect
     # per label; the art renders at that size and is pasted onto the full
-    # white canvas below. Without printer info: the classic 99014 canvas with
-    # DYMO's own ImageableArea margins baked in at 300 dpi.
+    # white canvas below. A canvas WITHOUT a rect (older add-on, unknown
+    # media, no printer info) still gets the default DYMO margins at its own
+    # dpi — the add-on crops the leading strip unconditionally, so art drawn
+    # there would be destroyed on paper.
     pr = canvas.get("printable")
-    if not canvas:
-        pr = {"x": 18, "y": 64, "w": full_w - 30, "h": full_h - 82}
-    if pr:
-        W, H = int(pr["w"]), int(pr["h"])
-        art_off = (int(pr["x"]), int(pr["y"]))
-    else:
-        W, H = full_w, full_h
-        art_off = (0, 0)
+    if not pr:
+        mm = dpi / 25.4
+        mx, my = round(1.5 * mm), round(5.4 * mm)
+        pr = {
+            "x": mx,
+            "y": my,
+            "w": max(1, full_w - mx - round(1.0 * mm)),
+            "h": max(1, full_h - my - round(1.5 * mm)),
+        }
+    W, H = int(pr["w"]), int(pr["h"])
+    art_off = (int(pr["x"]), int(pr["y"]))
+    # A landscape label (Zebra rolls like 57x32 mm) would collapse the
+    # portrait layout to a sliver; design in portrait at the transposed size
+    # and rotate the finished art onto the label instead.
+    landscape = W > H
+    if landscape:
+        W, H = H, W
     # Everything fixed (type, margins, bars) follows the smaller of the two
     # ratios so no section can overflow a stubbier label; the full width is
     # always used, so wider labels get longer text lines instead of a
@@ -360,9 +382,19 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     d.text((cx - cw / 2 - cl, y), code, font=code_font, fill=BLACK)
     y += ch + S(56)
     bar_height = S(108)
-    _draw_barcode(d, code, cx, y, height=bar_height,
-                  narrow=max(2, round(3 * sc)), ratio=3)
-    y += bar_height + S(24)
+    # Fit the Code 39 module count to the width: one char = 16 narrow units
+    # (incl. inter-char gap) and the quiet zones need 10 per side. Shrink the
+    # module before ever clipping; when even 2 px modules can't fit (long
+    # portion sub-codes on a narrow roll), drop the bars — an edge-clipped
+    # barcode without quiet zones scans as garbage, and the big human-readable
+    # code stays.
+    units = (len(code) + 2) * 16 - 1 + 20
+    narrow = min(max(2, round(3 * sc)), max(1, W // units))
+    if narrow >= 2:
+        _draw_barcode(d, code, cx, y, height=bar_height, narrow=narrow, ratio=3)
+        y += bar_height + S(24)
+    else:
+        y += S(8)
     d.line([0, y, W - 1, y], fill=BLACK, width=max(1, S(2)))
     y += S(22)
 
@@ -406,17 +438,20 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     quantity = str(item.get("quantity") or "").strip()
     # Reserve a taller footer band when there's a quantity to show.
     footer_top = H - (S(132) if quantity else S(70))
-    if contents and y < footer_top - S(56):
-        _draw_tracked(d, (MX, y), s["contents"], sans_bold(S(26)), tracking=S(6))
-        y += S(40)
+    if contents:
         cfont = sans(S(38))
         line_h = S(46)
         # Taller labels simply fit more lines; cap so contents never becomes
-        # the dominant section.
-        max_lines = max(1, min(8, int((footer_top - y) // line_h)))
-        for line in _wrap(d, contents, cfont, inner_w, max_lines=max_lines):
-            d.text((MX, y), line, font=cfont, fill=BLACK)
-            y += line_h
+        # the dominant section. Zero lines of room = skip the section whole
+        # (heading included) instead of colliding with the footer.
+        max_lines = min(8, int((footer_top - y - S(40)) // line_h))
+        if max_lines >= 1:
+            _draw_tracked(d, (MX, y), s["contents"], sans_bold(S(26)),
+                          tracking=S(6))
+            y += S(40)
+            for line in _wrap(d, contents, cfont, inner_w, max_lines=max_lines):
+                d.text((MX, y), line, font=cfont, fill=BLACK)
+                y += line_h
 
     # 7) Footer — the quantity ("how much / how many servings") lives here.
     # It replaces the old label-type stamp because it's what you actually want
@@ -428,8 +463,9 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
                       tracking=S(6))
         qfont, _ = _fit_font(d, quantity, sans_bold, inner_w, start=S(54),
                              min_size=S(32))
-        _, _, _, qt = _text_size(d, quantity, qfont)
-        d.text((MX, line_y + S(54) - qt), quantity, font=qfont, fill=BLACK)
+        qtext = _ellipsize(d, quantity, qfont, inner_w)
+        _, _, _, qt = _text_size(d, qtext, qfont)
+        d.text((MX, line_y + S(54) - qt), qtext, font=qfont, fill=BLACK)
     else:
         foot_y = H - S(70)
         d.line([0, foot_y - S(16), W - 1, foot_y - S(16)], fill=BLACK,
@@ -437,7 +473,9 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
         _draw_tracked(d, (0, foot_y), s["brand"], sans_bold(S(24)), tracking=S(4),
                       anchor_center=cx)
 
-    if (W, H) != (full_w, full_h):
+    if landscape:
+        img = img.rotate(90, expand=True)
+    if img.size != (full_w, full_h):
         full = Image.new("L", (full_w, full_h), WHITE)
         full.paste(img, art_off)
         img = full

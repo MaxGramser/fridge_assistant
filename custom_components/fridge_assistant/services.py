@@ -22,14 +22,9 @@ from .ai import AIEstimateError, async_estimate
 from .codes import split_portion_code
 from .const import (
     ACTION_EATEN,
-    ACTION_TOSSED,
     CONF_AI_ENABLED,
     CONF_PRINTER_ENABLED,
     DOMAIN,
-    EVENT_ITEM_ADDED,
-    EVENT_ITEM_COMPLETED,
-    EVENT_ITEM_REMOVED,
-    EVENT_PORTION_CONSUMED,
     HISTORY_ACTIONS,
     LEGACY_LOCATIONS,
     LOCATIONS,
@@ -38,7 +33,7 @@ from .const import (
     resolve_language,
     shared_text,
 )
-from .coordinator import FridgeRuntime
+from .coordinator import FridgeRuntime, get_runtime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,20 +45,32 @@ _STRINGS: dict[str, dict[str, str]] = {
         "Assistant.",
         "printer_unreachable": "De Label Printer add-on is niet bereikbaar. Staat de "
         "add-on aan?",
+        "printer_not_connected": "De printer is niet verbonden of staat uit. Zet hem "
+        "aan en probeer opnieuw.",
         "print_failed": "Printen mislukte ({reason}).",
         "sticker_title": "🖨️ Sticker printen",
         "sticker_body": "{msg}\n\nSticker voor **{name}** (`{code}`).",
+        "path_not_allowed": "Pad {path} is niet toegestaan; gebruik een pad onder "
+        "{allowed} of voeg het toe aan allowlist_external_dirs.",
     },
     "en": {
         "ai_disabled": "AI estimates are turned off in the settings.",
         "printer_disabled": "The printer is turned off in Fridge Assistant's settings.",
         "printer_unreachable": "The Label Printer add-on is unreachable. Is the "
         "add-on running?",
+        "printer_not_connected": "The printer is not connected or powered off. Turn "
+        "it on and try again.",
         "print_failed": "Print failed ({reason}).",
         "sticker_title": "🖨️ Print sticker",
         "sticker_body": "{msg}\n\nSticker for **{name}** (`{code}`).",
+        "path_not_allowed": "Path {path} is not allowed; use a path under {allowed} "
+        "or add it to allowlist_external_dirs.",
     },
 }
+
+# export_label may write anywhere these trees allow — and nowhere else, so a
+# service call can't overwrite e.g. /config/configuration.yaml with PNG bytes.
+_EXPORT_BASES = (Path("/share/fridge-assistant"), Path("/tmp"))
 
 SERVICE_ADD_ITEM = "add_item"
 SERVICE_UPDATE_ITEM = "update_item"
@@ -174,30 +181,25 @@ PRINT_STICKER_SCHEMA = vol.Schema(
 
 
 def _get_runtime(hass: HomeAssistant) -> FridgeRuntime:
-    for value in hass.data.get(DOMAIN, {}).values():
-        if isinstance(value, FridgeRuntime):
-            return value
-    raise HomeAssistantError(shared_text(hass, "not_configured"))
+    runtime = get_runtime(hass)
+    if runtime is None:
+        raise HomeAssistantError(shared_text(hass, "not_configured"))
+    return runtime
 
 
 def async_setup_services(hass: HomeAssistant) -> None:
-    """Register all services (idempotent)."""
+    """Register all services (idempotent).
+
+    All mutations go through the FridgeRuntime methods, which persist and
+    fire the public bus events — the websocket API uses the same ones, so
+    the two surfaces cannot drift apart.
+    """
 
     async def handle_add_item(call: ServiceCall) -> ServiceResponse:
         runtime = _get_runtime(hass)
-        data = dict(call.data)
         # Attribute the item to the HA user behind the service call, if any.
-        if call.context.user_id and not data.get("added_by"):
-            user = await hass.auth.async_get_user(call.context.user_id)
-            if user:
-                data["added_by"] = user.id
-                data.setdefault("added_by_name", user.name)
-        item = runtime.store.build_item(data, runtime.code_format)
-        runtime.store.add_item(item)
-        await runtime.async_changed()
-        hass.bus.async_fire(
-            EVENT_ITEM_ADDED, {"id": item["id"], "code": item["code"], "name": item["name"]}
-        )
+        by, by_name = await runtime.async_user_attrs(call.context.user_id)
+        item = await runtime.async_add_item(dict(call.data), by=by, by_name=by_name)
         return {"item": item}
 
     async def handle_update_item(call: ServiceCall) -> ServiceResponse:
@@ -212,37 +214,19 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_remove_item(call: ServiceCall) -> ServiceResponse:
         runtime = _get_runtime(hass)
-        item = runtime.store.remove_item(call.data["id"])
+        item = await runtime.async_remove_item(call.data["id"])
         if item is None:
             raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
-        await runtime.async_changed()
-        hass.bus.async_fire(
-            EVENT_ITEM_REMOVED, {"id": item["id"], "code": item["code"], "name": item["name"]}
-        )
         return {"item": item}
 
     async def handle_complete_item(call: ServiceCall) -> ServiceResponse:
         runtime = _get_runtime(hass)
-        by = by_name = None
-        if call.context.user_id:
-            user = await hass.auth.async_get_user(call.context.user_id)
-            if user:
-                by, by_name = user.id, user.name
-        event = runtime.store.complete_item(
-            call.data["id"], call.data["action"], by, by_name
+        by, by_name = await runtime.async_user_attrs(call.context.user_id)
+        event = await runtime.async_complete_item(
+            call.data["id"], call.data["action"], by=by, by_name=by_name
         )
         if event is None:
             raise HomeAssistantError(shared_text(hass, "item_not_found", id=call.data["id"]))
-        await runtime.async_changed()
-        hass.bus.async_fire(
-            EVENT_ITEM_COMPLETED,
-            {
-                "action": event["action"],
-                "by": event["by"],
-                "code": event["item"].get("code"),
-                "name": event["item"].get("name"),
-            },
-        )
         return {"event": event}
 
     async def handle_eat_portion(call: ServiceCall) -> ServiceResponse:
@@ -263,42 +247,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
                     shared_text(hass, "item_not_found", id=call.data.get("code"))
                 )
             item_id = item["id"]
-        by = by_name = None
-        if call.context.user_id:
-            user = await hass.auth.async_get_user(call.context.user_id)
-            if user:
-                by, by_name = user.id, user.name
-        result = runtime.store.consume_portion(
+        by, by_name = await runtime.async_user_attrs(call.context.user_id)
+        result = await runtime.async_consume_portion(
             item_id, portion=portion, action=call.data["action"], by=by, by_name=by_name
         )
         if isinstance(result, str):
             if result == "item_not_found":
                 raise HomeAssistantError(shared_text(hass, "item_not_found", id=item_id))
             raise HomeAssistantError(shared_text(hass, result, n=portion))
-        await runtime.async_changed()
-        event = result["event"]
-        snap = event.get("item") or {}
-        hass.bus.async_fire(
-            EVENT_PORTION_CONSUMED,
-            {
-                "item_id": item_id,
-                "code": snap.get("code"),
-                "name": snap.get("name"),
-                "portion": result["portion"],
-                "remaining": result["remaining"],
-                "completed": result["completed"],
-            },
-        )
-        if result["completed"]:
-            hass.bus.async_fire(
-                EVENT_ITEM_COMPLETED,
-                {
-                    "action": event["action"],
-                    "by": event["by"],
-                    "code": snap.get("code"),
-                    "name": snap.get("name"),
-                },
-            )
         return result
 
     async def handle_remove_expired(call: ServiceCall) -> ServiceResponse:
@@ -306,18 +262,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         # keeps a history record of what was thrown out and by whom, instead
         # of deleting silently.
         runtime = _get_runtime(hass)
-        by = by_name = None
-        if call.context.user_id:
-            user = await hass.auth.async_get_user(call.context.user_id)
-            if user:
-                by, by_name = user.id, user.name
-        removed = []
-        for item in runtime.store.expired_items():
-            event = runtime.store.complete_item(item["id"], ACTION_TOSSED, by, by_name)
-            if event is not None:
-                removed.append(event["item"])
-        if removed:
-            await runtime.async_changed()
+        by, by_name = await runtime.async_user_attrs(call.context.user_id)
+        removed = await runtime.async_remove_expired(by=by, by_name=by_name)
         return {"removed": removed, "count": len(removed)}
 
     async def handle_estimate(call: ServiceCall) -> ServiceResponse:
@@ -351,11 +297,19 @@ def async_setup_services(hass: HomeAssistant) -> None:
             reasons = {
                 "printer_disabled": localized(_STRINGS, lang, "printer_disabled"),
                 "printer_unreachable": localized(_STRINGS, lang, "printer_unreachable"),
+                "printer_not_connected": localized(
+                    _STRINGS, lang, "printer_not_connected"
+                ),
             }
             msg = reasons.get(
                 result.get("reason"),
                 localized(_STRINGS, lang, "print_failed", reason=result.get("reason")),
             )
+            # The add-on's detail/hint says what to actually do (which queues
+            # exist, plug in the printer, …) — losing it made failures vague.
+            detail = result.get("detail")
+            if detail:
+                msg = f"{msg}\n{detail}"
             persistent_notification.async_create(
                 hass,
                 localized(
@@ -381,6 +335,22 @@ def async_setup_services(hass: HomeAssistant) -> None:
         else:
             item = dict(_SAMPLE_ITEM)
         path = call.data.get("path") or "/share/fridge-assistant/_preview/label.png"
+        # Any authenticated user/automation can call this service, so the
+        # target must stay inside known-safe trees — otherwise a stray path
+        # overwrites arbitrary files (e.g. /config/configuration.yaml).
+        resolved = Path(path).resolve()
+        allowed = [*_EXPORT_BASES, Path(hass.config.path("www"))]
+        if not (
+            any(resolved.is_relative_to(base) for base in allowed)
+            or hass.config.is_allowed_path(str(resolved))
+        ):
+            raise HomeAssistantError(
+                localized(
+                    _STRINGS, resolve_language(hass), "path_not_allowed",
+                    path=path, allowed=", ".join(str(b) for b in allowed),
+                )
+            )
+        path = str(resolved)
         # Same canvas rule as the live preview: size for the target printer
         # when one is named or printing is enabled, else the design canvas.
         canvas = None

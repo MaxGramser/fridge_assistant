@@ -1,6 +1,10 @@
 /* Fridge Assistant panel — all styles, injected into the shadow root. */
 
 export const STYLES = `
+/* Author display rules (e.g. .seg{display:flex}) beat the UA's
+   [hidden]{display:none}, so hidden elements would stay visible without
+   this explicit restore. */
+[hidden]{display:none!important;}
 /* Design tokens — 2026 pass: glass surfaces, soft depth, one shared gutter
    so the header, chips, sections and cards all sit on exactly the same axis. */
 :host{
@@ -123,6 +127,7 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
   transition:transform .18s var(--fa-ease),box-shadow .18s var(--fa-ease);}
 .card:hover{transform:translateY(-2px);box-shadow:var(--fa-shadow-m);}
 .card:active{transform:scale(.985);}
+.card:focus-visible{outline:2px solid var(--fa-accent);outline-offset:2px;}
 .card-emoji{font-size:25px;width:48px;height:48px;flex:none;display:flex;align-items:center;
   justify-content:center;background:color-mix(in srgb,var(--fa-accent) 7%,var(--fa-bg));
   border-radius:15px;}
@@ -250,8 +255,10 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
 .df-ph{color:var(--fa-muted);overflow:hidden;text-overflow:ellipsis;}
 .datefield input:focus + .df-display{border-color:var(--fa-accent);box-shadow:0 0 0 4px var(--fa-accent-soft);}
 .df-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;display:none;
-  width:28px;height:28px;border:none;border-radius:50%;background:var(--fa-soft);color:var(--fa-muted);
+  width:34px;height:34px;border:none;border-radius:50%;background:var(--fa-soft);color:var(--fa-muted);
   font-size:13px;cursor:pointer;align-items:center;justify-content:center;padding:0;}
+/* Companion-app thumbs need a bigger invisible hit area than the visual dot. */
+.df-clear::after{content:"";position:absolute;inset:-6px;}
 .datefield.has-value .df-clear{display:flex;}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
 .expiry-hint{font-size:13px;font-weight:700;min-height:18px;margin:-2px 2px 4px;}
@@ -377,9 +384,13 @@ ha-icon{--mdc-icon-size:18px;vertical-align:-4px;}
 .hi-right{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
 .hi-right .who{font-size:12px;color:var(--fa-muted);}
 .hi-time{font-size:11px;color:var(--fa-muted);}
-.hi-btns{display:flex;gap:2px;align-items:center;}
+.hi-btns{display:flex;gap:8px;align-items:center;}
 .hi-undo{border:none;background:transparent;color:var(--fa-accent);font-size:12px;font-weight:800;
-  cursor:pointer;padding:3px 8px;margin-top:2px;border-radius:8px;font-family:inherit;}
+  cursor:pointer;padding:3px 8px;margin-top:2px;border-radius:8px;font-family:inherit;
+  position:relative;}
+/* Restore and permanent-delete sit side by side: real gap + a 44px-ish hit
+   area per button, so a thumb can't hit the wrong one. */
+.hi-undo::after{content:"";position:absolute;inset:-9px -4px;}
 .hi-undo:hover{background:var(--fa-soft);}
 .hi-undo:disabled{opacity:.5;}
 .hi-del{color:var(--fa-muted);}

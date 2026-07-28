@@ -145,9 +145,13 @@ def build_label_context(
         "kind_label": get_kind_label(kind, lang),
         "today": dt_util.now().date(),
         # Portion stickers get a sub-code (AB12-3) + "PORTIE n/N" heading;
-        # single-portion items render exactly like before.
+        # single-portion items render exactly like before. Stored items carry
+        # a portions LIST; ad-hoc render payloads may say ``portions: 8``.
         "portion": portion,
-        "portions_total": len(item.get("portions") or []) or 1,
+        "portions_total": (
+            max(1, portions) if isinstance(portions := item.get("portions"), int)
+            else len(portions or []) or 1
+        ),
     }
 
 
@@ -227,7 +231,14 @@ async def async_print_item(
             f"{url}/print", data=form,
             timeout=aiohttp.ClientTimeout(total=30),
         ) as resp:
-            body = await resp.json(content_type=None)
+            # A proxy/ingress can hand back HTML or nothing; that's an HTTP
+            # failure to report, not a parse error to crash on.
+            try:
+                body = await resp.json(content_type=None)
+            except ValueError:
+                body = None
+            if not isinstance(body, dict):
+                body = {}
             ok = resp.status == 200 and bool(body.get("ok"))
             return {
                 "printed": ok,
@@ -236,7 +247,9 @@ async def async_print_item(
                 "copies": copies, "code": code, "portion": portion, "url": url,
                 "printer": (entry or {}).get("name") or printer,
             }
-    except aiohttp.ClientError as err:
+    except (aiohttp.ClientError, TimeoutError) as err:
+        # TimeoutError is not a ClientError; without it a hung add-on would
+        # surface as a generic "print_failed" with an empty detail.
         return {"printed": False, "reason": "printer_unreachable",
                 "detail": f"{url}: {err}", "code": code, "url": url}
     except Exception as err:  # noqa: BLE001

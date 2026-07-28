@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -305,13 +306,18 @@ async def _estimate_conversation(
     service_data["agent_id"] = agent
 
     try:
-        resp = await hass.services.async_call(
-            "conversation",
-            "process",
-            service_data,
-            blocking=True,
-            return_response=True,
-        )
+        # A stuck local agent (e.g. Ollama) can otherwise hang this call —
+        # and the panel's spinner — indefinitely; the OpenAI path caps at 30s.
+        async with asyncio.timeout(60):
+            resp = await hass.services.async_call(
+                "conversation",
+                "process",
+                service_data,
+                blocking=True,
+                return_response=True,
+            )
+    except TimeoutError as err:
+        raise AIEstimateError(_t(lang, "agent_failed", err="timeout")) from err
     except Exception as err:  # noqa: BLE001
         raise AIEstimateError(_t(lang, "agent_failed", err=err)) from err
 

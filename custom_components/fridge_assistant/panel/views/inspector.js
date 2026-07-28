@@ -72,7 +72,7 @@ export function openInspector(panel, item, { highlight = null } = {}) {
       <div class="detail-head" style="--c:${col}">
         <div class="d-emoji">${i.emoji || "🍽️"}</div>
         <div class="d-title"><h2>${esc(i.name)}</h2><div class="d-code">${esc(i.code)}${total > 1 ? ` · <span class="pbadge" title="${esc(panel.t("pbadgeTitle", open, total))}">${open}/${total}</span>` : ""}</div></div>
-        <button class="icon-btn" id="d-close"><ha-icon icon="mdi:close"></ha-icon></button>
+        <button class="icon-btn" id="d-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
       </div>
       <div class="d-status" style="--c:${col}">${daysLabel(i.days_left, lang)}${i.expiry_date ? " · " + fmtDate(i.expiry_date, lang) : ""}</div>
       <div class="po-sec">

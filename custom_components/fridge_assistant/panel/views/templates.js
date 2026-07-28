@@ -13,7 +13,7 @@ export function openTemplatePicker(panel, onPick) {
   const h = panel._openModal(`
     <div class="modal-head">
       <div class="m-title"><h3>${panel.t("pickTemplateTitle")}</h3></div>
-      <button class="icon-btn" id="tp-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="tp-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="seg" id="tp-kinds">
       <button data-kind="all" class="on">${panel.t("all")}</button>
@@ -37,7 +37,7 @@ export function openTemplatePicker(panel, onPick) {
       return `<button class="tp-item" data-id="${t.id}">
         <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
         <span class="tp-name"><b>${esc(t.name)}</b><small>${panel._kindMeta(panel._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}${t.source === "user" || t.source === "ai" ? panel.t("ownSuffix") : ""}</small></span>
-        <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${({ fridge: "🧊", freezer: "❄️", pantry: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
+        <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${panel._locMeta(l).emoji || ""}${sl[l]}d</i>` : "").join("")}</span>
       </button>`;
     }).join("") || `<div class="empty small"><p>${panel.t("nothingFound")}</p></div>`;
     listEl.querySelectorAll(".tp-item").forEach((b) =>
@@ -69,7 +69,7 @@ export function openTemplatesManager(panel) {
       <div class="m-title"><h3>${panel.t("templatesTitle")}</h3></div>
       ${panel._state.options.ai_enabled ? `<button class="btn ai icon-only" id="tm-ai" title="${panel.t("templateWithAiTitle")}"><ha-icon icon="mdi:creation"></ha-icon></button>` : ""}
       <button class="btn primary icon-only" id="tm-new" title="${panel.t("newTemplateTitleIcon")}"><ha-icon icon="mdi:plus"></ha-icon></button>
-      <button class="icon-btn" id="tm-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="tm-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="seg" id="tm-kinds">
       <button data-kind="all" class="on">${panel.t("all")}</button>
@@ -114,7 +114,7 @@ export function openTemplatesManager(panel) {
       return `<button class="tp-item" data-id="${t.id}">
         <span class="tp-emoji">${t.emoji || c.emoji || "🍽️"}</span>
         <span class="tp-name"><b>${esc(t.name)}${badge}</b><small>${panel._kindMeta(panel._kindOf(t)).emoji || ""} ${esc(c.label || t.category)}</small></span>
-        <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${({ fridge: "🧊", freezer: "❄️", pantry: "🧺" })[l]}${sl[l]}d</i>` : "").join("")}</span>
+        <span class="tp-sl">${["fridge", "freezer", "pantry"].map((l) => sl[l] ? `<i>${panel._locMeta(l).emoji || ""}${sl[l]}d</i>` : "").join("")}</span>
       </button>`;
     }).join("") || `<div class="empty small"><p>${panel.t("nothingInGroup")}</p></div>`;
     listEl.querySelectorAll(".tp-item").forEach((b) =>
@@ -147,7 +147,7 @@ export function aiNewTemplate(panel, onChanged) {
     <div class="modal-head">
       <div class="m-emoji"><ha-icon icon="mdi:creation" style="--mdc-icon-size:28px;color:var(--fa-accent)"></ha-icon></div>
       <div class="m-title"><h3>${panel.t("templateWithAiTitle")}</h3><div class="s-sub">${panel.t("templateWithAiSub")}</div></div>
-      <button class="icon-btn" id="ai-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="ai-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <label class="field"><span>${panel.t("productOrDishLabel")}</span><input id="ai-name" placeholder="${panel.t("productOrDishPlaceholder")}" enterkeyhint="go" autocomplete="off"></label>
     <div class="modal-actions"><button class="btn ai" id="ai-go">${panel.t("estimateWithAiBtn")}</button></div>
@@ -204,7 +204,7 @@ export function openTemplateEditor(panel, tpl, isNew, onChanged) {
       <div class="m-title"><h3>${isNew ? panel.t("newTemplateHeading") : panel.t("editTemplateHeading")}</h3>
         ${!isNew ? `<div class="s-sub">${isOverride ? panel.t("overrideNote") : (t.builtin ? panel.t("builtinNote") : panel.t("ownTemplateNote"))}</div>` : ""}
       </div>
-      <button class="icon-btn" id="te-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="te-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="grid2">
       <label class="field"><span>${panel.t("nameLabel")}</span><input id="te-name" value="${esc(t.name)}" placeholder="${panel.t("namePlaceholderTemplate")}"></label>

@@ -44,7 +44,7 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
       <div class="m-title"><div class="m-strong">${panel.t("printStickerModalTitle")}</div>
         <div class="m-sub">${esc(item?.name || "")} · <code>${esc(batch ? item?.code || "" : codeShown)}</code></div>
       </div>
-      <button class="icon-btn" id="p-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="p-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="seg pp-seg" id="p-printers" hidden></div>
     <div class="label-preview${batch ? " multi" : ""}" id="p-preview"><div class="muted">${panel.t("previewLoading")}</div></div>
@@ -223,6 +223,11 @@ export function printSticker(panel, id, itemHint = null, { portion = null } = {}
         // Only the ticked stickers, sequentially so CUPS gets them in order.
         const targets = batchTargets.filter((n) => selected.has(n));
         for (let i = 0; i < targets.length; i++) {
+          if (!h.modal.isConnected) {
+            // Modal closed mid-batch = cancel; don't keep feeding stickers.
+            panel._toast(panel.t("printBatchStopped", i, targets.length));
+            return;
+          }
           btn.textContent = panel.t("printingProgress", i + 1, targets.length);
           const res = await panel._call("print_sticker", printPayload({ portion: targets[i] }));
           if (!res.printed) {

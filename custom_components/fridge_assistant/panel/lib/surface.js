@@ -10,6 +10,21 @@ import { esc, fmtDate, parseISO } from "./format.js";
  * everything stays a bottom sheet. */
 const DRAWER_MQ = "(min-width: 900px)";
 
+/* Stack of open surfaces (drawer + modals, bottom-most first). Escape must
+ * close only the TOP surface — one keypress collapsing a whole stack of
+ * template-picker-over-editor-over-drawer loses work. */
+const _stack = [];
+
+const _FOCUSABLE =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),' +
+  'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+function _focusFirst(container) {
+  const el = container.querySelector("[autofocus]") ||
+    container.querySelector(_FOCUSABLE);
+  if (el) try { el.focus(); } catch (_) {}
+}
+
 export function openSurface(panel, innerHTML, { prefer = "modal", wide = false, onClose = null } = {}) {
   if (prefer === "drawer" && window.matchMedia(DRAWER_MQ).matches) {
     const h = openDrawer(panel, innerHTML);
@@ -33,12 +48,23 @@ export function openDrawer(panel, innerHTML) {
     requestAnimationFrame(() => d.classList.add("show"));
     panel.classList.add("fa-drawer-open");
     panel._drawerEl = d;
-    const onKey = (e) => { if (e.key === "Escape") closeDrawer(panel); };
+    panel._drawerRestoreFocus =
+      panel.shadowRoot.activeElement || document.activeElement;
+    const entry = { close: () => closeDrawer(panel) };
+    const onKey = (e) => {
+      if (e.key === "Escape" && _stack[_stack.length - 1] === entry) {
+        closeDrawer(panel);
+      }
+    };
+    entry.onKey = onKey;
+    _stack.push(entry);
+    panel._drawerStackEntry = entry;
     document.addEventListener("keydown", onKey);
     panel._drawerKeyHandler = onKey;
   }
   d.innerHTML = innerHTML;
   d.scrollTop = 0;
+  _focusFirst(d);
   return { modal: d, close: () => closeDrawer(panel) };
 }
 
@@ -51,9 +77,15 @@ export function closeDrawer(panel) {
     document.removeEventListener("keydown", panel._drawerKeyHandler);
     panel._drawerKeyHandler = null;
   }
+  const idx = _stack.indexOf(panel._drawerStackEntry);
+  if (idx >= 0) _stack.splice(idx, 1);
+  panel._drawerStackEntry = null;
   panel.classList.remove("fa-drawer-open");
   d.classList.remove("show");
   setTimeout(() => d.remove(), 200);
+  const back = panel._drawerRestoreFocus;
+  panel._drawerRestoreFocus = null;
+  if (back && back.isConnected) try { back.focus(); } catch (_) {}
   if (panel._onDrawerClosed) { const f = panel._onDrawerClosed; panel._onDrawerClosed = null; f(); }
 }
 
@@ -61,17 +93,27 @@ export function openModal(panel, innerHTML, { wide = false, onClose = null } = {
   const root = panel.shadowRoot.getElementById("modal-root");
   const overlay = document.createElement("div");
   overlay.className = "overlay";
-  overlay.innerHTML = `<div class="modal ${wide ? "wide" : ""}" role="dialog">${innerHTML}</div>`;
+  overlay.innerHTML = `<div class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true">${innerHTML}</div>`;
   root.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add("show"));
+  const restoreFocus = panel.shadowRoot.activeElement || document.activeElement;
   let closed = false;
+  const entry = {};
   const close = () => {
     if (closed) return;
     closed = true;
+    document.removeEventListener("keydown", onKey);
+    const idx = _stack.indexOf(entry);
+    if (idx >= 0) _stack.splice(idx, 1);
     overlay.classList.remove("show");
     setTimeout(() => overlay.remove(), 180);
+    if (restoreFocus && restoreFocus.isConnected) {
+      try { restoreFocus.focus(); } catch (_) {}
+    }
     if (onClose) onClose();
   };
+  entry.close = close;
+  _stack.push(entry);
   overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(); });
   // Keep scroll/pull-to-refresh gestures from reaching the page behind the
   // sheet. Deliberately NOT done by touching document.body (the companion
@@ -91,9 +133,37 @@ export function openModal(panel, innerHTML, { wide = false, onClose = null } = {
   };
   overlay.addEventListener("touchmove", containScroll, { passive: false });
   overlay.addEventListener("wheel", containScroll, { passive: false });
-  const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
+  // Escape closes only the TOP surface; the listener is removed in close()
+  // itself, so closing via ✕/backdrop can never leak it. Tab cycles inside
+  // the dialog (aria-modal without a trap still lets focus escape).
+  const onKey = (e) => {
+    if (e.key === "Escape") {
+      if (_stack[_stack.length - 1] === entry) close();
+      return;
+    }
+    if (e.key === "Tab" && _stack[_stack.length - 1] === entry) {
+      const items = overlay.querySelectorAll(_FOCUSABLE);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = panel.shadowRoot.activeElement;
+      if (e.shiftKey && (active === first || !overlay.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !overlay.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
   document.addEventListener("keydown", onKey);
-  return { overlay, modal: overlay.querySelector(".modal"), close };
+  const modal = overlay.querySelector(".modal");
+  // Move focus in (unless a view focuses its own field a tick later).
+  requestAnimationFrame(() => {
+    const active = panel.shadowRoot.activeElement;
+    if (!overlay.contains(active)) _focusFirst(modal);
+  });
+  return { overlay, modal, close };
 }
 
 /* Native date inputs render inconsistently (iOS ignores widths, empty

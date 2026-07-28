@@ -38,7 +38,9 @@ class FridgeAssistantPanel extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._shellBuilt) this._init();
-    if (!this._unsub && hass) this._subscribe();
+    // After repeated failures the error card's retry button takes over, so
+    // a broken backend isn't hammered on every single hass update.
+    if (!this._unsub && hass && (this._subFails || 0) < 3) this._subscribe();
     if (this._shellBuilt) this._applyChrome();
   }
   get hass() { return this._hass; }
@@ -94,14 +96,42 @@ class FridgeAssistantPanel extends HTMLElement {
   }
 
   async _subscribe() {
+    // `set hass` fires on every state change; without a synchronous guard,
+    // every call during the subscribe round-trip starts ANOTHER subscription
+    // (only the last unsub is kept), and each leaked one re-renders the
+    // panel on every push for the rest of the session.
+    if (this._subscribing) return;
+    this._subscribing = true;
     try {
       this._unsub = await this._hass.connection.subscribeMessage(
-        (state) => { this._state = state; this._onState(); },
+        (state) => { this._state = state; this._subFails = 0; this._onState(); },
         { type: "fridge_assistant/subscribe" }
       );
     } catch (e) {
       this._unsub = null;
+      this._subFails = (this._subFails || 0) + 1;
+      if (this._subFails >= 3) this._renderSubscribeError();
+    } finally {
+      this._subscribing = false;
     }
+  }
+
+  /* After repeated subscribe failures: an explicit error card with a retry
+     button, instead of "Laden…" forever. */
+  _renderSubscribeError() {
+    const list = this.shadowRoot && this.shadowRoot.getElementById("list");
+    if (!list || this._state) return;
+    list.innerHTML = `<div class="empty">
+      <ha-icon icon="mdi:lan-disconnect" style="--mdc-icon-size:44px;color:var(--fa-muted)"></ha-icon>
+      <h2>${this.t("subscribeErrorTitle")}</h2>
+      <p>${this.t("subscribeErrorSub")}</p>
+      <button class="btn primary" id="sub-retry">${this.t("retryBtn")}</button>
+    </div>`;
+    list.querySelector("#sub-retry").addEventListener("click", () => {
+      list.innerHTML = `<div class="loading">${this.t("loading")}</div>`;
+      this._subFails = 0;
+      this._subscribe();
+    });
   }
 
   async _call(type, payload = {}) {
@@ -195,7 +225,9 @@ class FridgeAssistantPanel extends HTMLElement {
     $("btn-history").addEventListener("click", () => this._openHistory());
     $("btn-templates").addEventListener("click", () => this._openTemplatesManager());
     $("btn-settings").addEventListener("click", () => {
-      window.location.href = "/config/integrations/integration/fridge_assistant";
+      // SPA navigation: a hard location change reloads the whole HA frontend.
+      history.pushState(null, "", "/config/integrations/integration/fridge_assistant");
+      window.dispatchEvent(new CustomEvent("location-changed"));
     });
     $("search").addEventListener("input", (e) => { this._search = e.target.value; this._renderList(); });
     this._applyChrome();
@@ -328,7 +360,10 @@ class FridgeAssistantPanel extends HTMLElement {
 
     let html = "";
     if (!items.length) {
-      html += `<div class="empty small"><p>${this.t("nothingFound")}</p></div>`;
+      // The active chips may be scrolled out of view, so an empty result
+      // needs its own way out.
+      html += `<div class="empty small"><p>${this.t("nothingFound")}</p>
+        <button class="btn ghost" id="clear-filters">${this.t("showAll")}</button></div>`;
     } else {
       // Urgency sections: full-width headers inside the cards grid, so the
       // expiry sort stays readable in the two-column layout. They apply in
@@ -354,13 +389,27 @@ class FridgeAssistantPanel extends HTMLElement {
     }
     list.innerHTML = html;
 
-    list.querySelectorAll("[data-item]").forEach((el) =>
-      el.addEventListener("click", (e) => {
+    const clearBtn = list.querySelector("#clear-filters");
+    if (clearBtn) clearBtn.addEventListener("click", () => {
+      this._filterLoc = this._filterKind = this._filterCat = "all";
+      this._search = "";
+      const s = this.shadowRoot.getElementById("search");
+      if (s) s.value = "";
+      this._renderFilters();
+      this._renderList();
+    });
+    list.querySelectorAll("[data-item]").forEach((el) => {
+      const open = (e) => {
         if (e.target.closest(".card-print")) return;
         const item = this._state.items.find((x) => x.id === el.dataset.item);
         if (item) this._openItemModal(item);
-      })
-    );
+      };
+      el.addEventListener("click", open);
+      // Cards are divs, so Enter/Space must be wired for keyboard users.
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(e); }
+      });
+    });
     list.querySelectorAll(".card-print").forEach((b) =>
       b.addEventListener("click", (e) => { e.stopPropagation(); this._printSticker(b.dataset.print); })
     );
@@ -379,7 +428,7 @@ class FridgeAssistantPanel extends HTMLElement {
       ? `<span class="cs-sep">·</span><span class="pbadge" title="${esc(this.t("pbadgeTitle", open, total))}">${open}/${total}</span>`
       : "";
     const selected = this._inspectorItemId === i.id ? " selected" : "";
-    return `<div class="card${selected}" data-item="${i.id}">
+    return `<div class="card${selected}" data-item="${i.id}" role="button" tabindex="0" aria-label="${esc(i.name)}">
       <div class="card-emoji">${i.emoji || "🍽️"}</div>
       <div class="card-main">
         <div class="card-title">${esc(i.name)}</div>
@@ -394,7 +443,7 @@ class FridgeAssistantPanel extends HTMLElement {
         <div class="status" style="--c:${STATUS_COLOR[i.status]}">${daysLabel(i.days_left, lang)}</div>
         <div class="card-when">${i.added_by_name ? `<span class="who" title="${esc(i.added_by_name)}">${this._avatar(i.added_by_name, i.added_by_picture, 15)}</span>` : ""}${i.expiry_date ? `<span>${fmtDate(i.expiry_date, lang)}</span>` : ""}</div>
       </div>
-      <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}"><ha-icon icon="mdi:tag-outline"></ha-icon></button>
+      <button class="card-print icon-btn" data-print="${i.id}" title="${this.t("printSticker")}" aria-label="${this.t("printSticker")}"><ha-icon icon="mdi:tag-outline"></ha-icon></button>
     </div>`;
   }
 }

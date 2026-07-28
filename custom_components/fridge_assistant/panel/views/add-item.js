@@ -23,11 +23,11 @@ export function openAddModal(panel, prefill = {}, editItem = null) {
 
   const h = panel._openModal(`
     <div class="modal-head">
-      <div class="m-emoji" id="m-emoji">${m.emoji}</div>
+      <div class="m-emoji" id="m-emoji">${esc(m.emoji)}</div>
       <div class="m-title">
         <input class="m-name" id="f-name" placeholder="${panel.t("addNamePlaceholder")}" value="${esc(nameVal)}">
       </div>
-      <button class="icon-btn" id="m-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="m-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="suggest" id="f-suggest"></div>
     <div class="seg" id="f-loc">
@@ -128,6 +128,9 @@ export function openAddModal(panel, prefill = {}, editItem = null) {
     try { res = await panel._call("match_template", { query, location: m.location, added_date: addedEl.value }); }
     catch (e) { return; }
     if (m.noAutoMatch) return; // rejected while the request was in flight
+    // Out-of-order responses: an older, slower reply must never overwrite
+    // the match for what's in the field NOW ("kip" landing after "kipfilet").
+    if (nameEl.value.trim() !== query) return;
     if (res.template) {
       const t = res.template;
       m.template_id = t.id; m.category = t.category; setEmoji(t.emoji || "🍽️");

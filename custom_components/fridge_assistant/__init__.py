@@ -10,7 +10,9 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.loader import async_get_integration
 
 from .const import (
     CONF_NOTIFY_TIME,
@@ -20,8 +22,8 @@ from .const import (
     PANEL_TITLE_EN,
     PANEL_URL_PATH,
     PANEL_WEBCOMPONENT,
+    SIGNAL_UPDATED,
     URL_BASE,
-    VERSION,
     resolve_language,
 )
 from .coordinator import FridgeRuntime
@@ -60,6 +62,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(
         async_track_time_change(hass, _daily, hour=hh, minute=mm, second=ss)
+    )
+
+    # Date rollover: "expired/expiring" counts depend on today's date, so
+    # sensors and the live panel must recompute at midnight even when nobody
+    # touched the inventory (the daily check may be hours later).
+    async def _midnight(_now) -> None:
+        async_dispatcher_send(hass, SIGNAL_UPDATED)
+
+    entry.async_on_unload(
+        async_track_time_change(hass, _midnight, hour=0, minute=0, second=5)
     )
 
     # Run one check shortly after startup so the notification reflects reality.
@@ -128,6 +140,9 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
     if PANEL_URL_PATH in hass.data.get(frontend.DATA_PANELS, {}):
         return
     sidebar_title = PANEL_TITLE if resolve_language(hass) == "nl" else PANEL_TITLE_EN
+    # The manifest is the single source for the version; a hand-maintained
+    # constant drifted from it, silently breaking this cache-buster.
+    version = (await async_get_integration(hass, DOMAIN)).version
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL_PATH,
@@ -135,7 +150,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         # Versioned URL so a normal reload always picks up the newest panel.
         # Must point inside the /panel directory path so the entry's relative
         # ES-module imports (./strings.js, ./views/…) resolve.
-        module_url=f"{URL_BASE}/panel/fridge-assistant-panel.js?v={VERSION}",
+        module_url=f"{URL_BASE}/panel/fridge-assistant-panel.js?v={version}",
         sidebar_title=sidebar_title,
         sidebar_icon=PANEL_ICON,
         require_admin=False,

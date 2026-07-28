@@ -198,7 +198,12 @@ class FridgeStore:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
-        self._store: Store = FridgeDataStore(hass, STORAGE_VERSION, STORAGE_KEY)
+        # atomic_writes: tmp-file + rename, so a power cut mid-save can never
+        # leave a truncated file behind (Store silently treats a corrupt file
+        # as "no data", which would reset the whole inventory).
+        self._store: Store = FridgeDataStore(
+            hass, STORAGE_VERSION, STORAGE_KEY, atomic_writes=True
+        )
         self.items: dict[str, dict[str, Any]] = {}
         self.user_templates: dict[str, dict[str, Any]] = {}
         self.hidden: set[str] = set()
@@ -465,9 +470,16 @@ class FridgeStore:
             else:
                 expiry_source = SOURCE_NONE
 
+        # A code stays reserved while its history event can still be restored:
+        # otherwise a new item could reuse the code and a restore would put
+        # two live items behind one printed sticker.
+        taken_codes = [i.get("code") for i in self.items.values()]
+        taken_codes += [
+            (ev.get("item") or {}).get("code") for ev in self.history
+        ]
         item = {
             "id": uuid.uuid4().hex,
-            "code": generate_code((i["code"] for i in self.items.values()), code_format),
+            "code": generate_code((c for c in taken_codes if c), code_format),
             "name": (
                 data.get("name")
                 or data.get("contents")
@@ -608,14 +620,21 @@ class FridgeStore:
             item["portions"] = portions
         return portions
 
-    def set_portions(self, item_id: str, total: int) -> dict[str, Any] | None:
+    def set_portions(
+        self,
+        item_id: str,
+        total: int,
+        by: str | None = None,
+        by_name: str | None = None,
+    ) -> dict[str, Any] | None:
         """Resize how many portions a batch is split into.
 
         Consumed portions are untouched and portion numbers stay stable (a
         printed sticker keeps matching). Growing appends fresh open portions;
         shrinking drops the highest-numbered *open* ones. The total can never
         drop below the number of consumed portions — and if shrinking removes
-        the last open portion, the item completes just like eating it would.
+        the last open portion, the item completes just like eating it would
+        (``by``/``by_name`` attribute that completion to the acting user).
 
         Returns ``{"item", "completed", "completion_event"}`` or None.
         """
@@ -650,7 +669,7 @@ class FridgeStore:
                 if all(p.get("status") == "tossed" for p in consumed)
                 else ACTION_EATEN
             )
-            completion_event = self.complete_item(item_id, action)
+            completion_event = self.complete_item(item_id, action, by, by_name)
         return {
             "item": None if completion_event else item,
             "completed": completion_event is not None,

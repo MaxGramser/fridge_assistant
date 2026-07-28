@@ -11,11 +11,13 @@ import voluptuous as vol
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.util import dt as dt_util
 
 from .ai import AIEstimateError, async_estimate
 from .const import (
+    ACTION_EATEN,
     CATEGORIES,
     CATEGORY_KIND,
     KINDS,
@@ -24,21 +26,13 @@ from .const import (
     CONF_LABEL_COPIES,
     CONF_NOTIFY_ENABLED,
     CONF_OPENAI_KEY,
-    ACTION_TOSSED,
     CONF_PRINTER_ENABLED,
     CONF_PRINTER_URL,
     DEFAULT_PRINTER_URL,
     CONF_WARN_DAYS,
     DOMAIN,
     HISTORY_ACTIONS,
-    LABEL_SIZE_MM,
-    LABEL_TYPE,
     MAX_PORTIONS,
-    PRINTER_MODEL,
-    EVENT_ITEM_ADDED,
-    EVENT_ITEM_COMPLETED,
-    EVENT_ITEM_REMOVED,
-    EVENT_PORTION_CONSUMED,
     LOCATION_META,
     LOCATIONS,
     SIGNAL_UPDATED,
@@ -56,6 +50,59 @@ _STRINGS: dict[str, dict[str, str]] = {
     "nl": {"ai_disabled": "AI-schattingen staan uit in de instellingen."},
     "en": {"ai_disabled": "AI estimates are turned off in the settings."},
 }
+
+# Per-field validation for client payloads: a wrong type must surface as a
+# clear schema error, not crash the handler ("unknown_error" + stack trace)
+# or persist junk that every panel then chokes on. REMOVE_EXTRA also strips
+# keys the client has no business setting (added_by, _brand, …).
+_OPT_STR = vol.Any(None, cv.string)
+_ITEM_FIELDS = {
+    # id/code pass through for ad-hoc render payloads; build_item generates
+    # its own and update_item ignores them, so they can't be spoofed in.
+    vol.Optional("id"): _OPT_STR,
+    vol.Optional("code"): _OPT_STR,
+    vol.Optional("name"): _OPT_STR,
+    vol.Optional("contents"): _OPT_STR,
+    vol.Optional("location"): cv.string,
+    vol.Optional("category"): _OPT_STR,
+    vol.Optional("kind"): _OPT_STR,
+    vol.Optional("emoji"): _OPT_STR,
+    vol.Optional("icon"): _OPT_STR,
+    vol.Optional("photo"): _OPT_STR,
+    vol.Optional("template_id"): _OPT_STR,
+    vol.Optional("quantity"): _OPT_STR,
+    vol.Optional("portions"): vol.Any(
+        None, vol.All(vol.Coerce(int), vol.Range(min=1, max=MAX_PORTIONS))
+    ),
+    vol.Optional("added_date"): _OPT_STR,
+    vol.Optional("expiry_date"): _OPT_STR,
+    vol.Optional("expiry_source"): _OPT_STR,
+    vol.Optional("notes"): _OPT_STR,
+    vol.Optional("barcode"): _OPT_STR,
+}
+ITEM_SCHEMA = vol.Schema(_ITEM_FIELDS, extra=vol.REMOVE_EXTRA)
+CHANGES_SCHEMA = vol.Schema(
+    {k: v for k, v in _ITEM_FIELDS.items() if k.schema != "portions"},
+    extra=vol.REMOVE_EXTRA,
+)
+TEMPLATE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("id"): _OPT_STR,
+        vol.Optional("name"): cv.string,
+        vol.Optional("aliases"): [cv.string],
+        vol.Optional("category"): _OPT_STR,
+        vol.Optional("kind"): _OPT_STR,
+        vol.Optional("emoji"): _OPT_STR,
+        vol.Optional("icon"): _OPT_STR,
+        vol.Optional("shelf_life"): vol.Schema(
+            {cv.string: vol.Any(None, vol.Coerce(int))}
+        ),
+        vol.Optional("notes"): _OPT_STR,
+        vol.Optional("opened_fridge"): vol.Any(None, vol.Coerce(int)),
+        vol.Optional("source"): cv.string,
+    },
+    extra=vol.REMOVE_EXTRA,
+)
 
 
 def async_register_websocket(hass: HomeAssistant) -> None:
@@ -160,11 +207,8 @@ def _serialize_state(hass: HomeAssistant, runtime: FridgeRuntime) -> dict[str, A
                             or DEFAULT_PRINTER_URL).strip().rstrip("/"),
             "label_copies": int(opts.get(CONF_LABEL_COPIES) or 1),
         },
-        "printer": {
-            "model": PRINTER_MODEL,
-            "label": LABEL_TYPE,
-            "label_size": LABEL_SIZE_MM,
-        },
+        # No hardcoded "printer" hardware block anymore: what is actually
+        # connected/loaded is live data, served by ws get_printers.
     }
 
 
@@ -206,10 +250,17 @@ async def ws_get_state(hass, connection, msg) -> None:
     connection.send_result(msg["id"], _serialize_state(hass, runtime))
 
 
+def _user_attrs(connection) -> tuple[str | None, str | None]:
+    user = connection.user
+    if user is None:
+        return None, None
+    return user.id, user.name
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/add_item",
-        vol.Required("item"): dict,
+        vol.Required("item"): ITEM_SCHEMA,
     }
 )
 @websocket_api.async_response
@@ -217,18 +268,9 @@ async def ws_add_item(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    data = dict(msg["item"])
-    # Record who added it, from the authenticated websocket user.
-    user = connection.user
-    if user is not None:
-        data.setdefault("added_by", user.id)
-        data.setdefault("added_by_name", user.name)
-    item = runtime.store.build_item(data, runtime.code_format)
-    runtime.store.add_item(item)
-    await runtime.async_changed()
-    hass.bus.async_fire(
-        EVENT_ITEM_ADDED, {"id": item["id"], "code": item["code"], "name": item["name"]}
-    )
+    # Attribution comes from the authenticated websocket user.
+    by, by_name = _user_attrs(connection)
+    item = await runtime.async_add_item(dict(msg["item"]), by=by, by_name=by_name)
     connection.send_result(msg["id"], {"item": item})
 
 
@@ -236,7 +278,7 @@ async def ws_add_item(hass, connection, msg) -> None:
     {
         vol.Required("type"): f"{DOMAIN}/update_item",
         vol.Required("item_id"): str,
-        vol.Required("changes"): dict,
+        vol.Required("changes"): CHANGES_SCHEMA,
     }
 )
 @websocket_api.async_response
@@ -263,14 +305,10 @@ async def ws_remove_item(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    item = runtime.store.remove_item(msg["item_id"])
+    item = await runtime.async_remove_item(msg["item_id"])
     if item is None:
         connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
-    await runtime.async_changed()
-    hass.bus.async_fire(
-        EVENT_ITEM_REMOVED, {"id": item["id"], "code": item["code"], "name": item["name"]}
-    )
     connection.send_result(msg["id"], {"item": item})
 
 
@@ -285,26 +323,12 @@ async def ws_remove_expired(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    ids = msg.get("ids")
-    if ids is None:
-        targets = [i["id"] for i in runtime.store.expired_items()]
-    else:
-        targets = ids
     # Clearing out the fridge is "throwing away" — log each with who did it.
-    user = connection.user
-    removed = 0
-    for iid in targets:
-        event = runtime.store.complete_item(
-            iid,
-            ACTION_TOSSED,
-            by=user.id if user is not None else None,
-            by_name=user.name if user is not None else None,
-        )
-        if event is not None:
-            removed += 1
-    if removed:
-        await runtime.async_changed()
-    connection.send_result(msg["id"], {"count": removed})
+    by, by_name = _user_attrs(connection)
+    removed = await runtime.async_remove_expired(
+        msg.get("ids"), by=by, by_name=by_name
+    )
+    connection.send_result(msg["id"], {"count": len(removed)})
 
 
 @websocket_api.websocket_command(
@@ -320,26 +344,13 @@ async def ws_complete_item(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    user = connection.user
-    event = runtime.store.complete_item(
-        msg["item_id"],
-        msg["action"],
-        by=user.id if user is not None else None,
-        by_name=user.name if user is not None else None,
+    by, by_name = _user_attrs(connection)
+    event = await runtime.async_complete_item(
+        msg["item_id"], msg["action"], by=by, by_name=by_name
     )
     if event is None:
         connection.send_error(msg["id"], "not_found", shared_text(hass, "item_not_found", id=msg["item_id"]))
         return
-    await runtime.async_changed()
-    hass.bus.async_fire(
-        EVENT_ITEM_COMPLETED,
-        {
-            "action": event["action"],
-            "by": event["by"],
-            "code": event["item"].get("code"),
-            "name": event["item"].get("name"),
-        },
-    )
     connection.send_result(msg["id"], {"event": event})
 
 
@@ -357,16 +368,16 @@ async def ws_consume_portion(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    user = connection.user
-    result = runtime.store.consume_portion(
+    by, by_name = _user_attrs(connection)
+    result = await runtime.async_consume_portion(
         msg["item_id"],
         portion=msg.get("portion"),
-        action=msg.get("action", "eaten"),
-        by=user.id if user is not None else None,
-        by_name=user.name if user is not None else None,
+        action=msg.get("action", ACTION_EATEN),
+        by=by,
+        by_name=by_name,
     )
     if isinstance(result, str):
-        # Store returned an error key; localise it for the panel.
+        # Runtime returned an error key; localise it for the panel.
         if result == "item_not_found":
             connection.send_error(
                 msg["id"], "not_found",
@@ -378,30 +389,6 @@ async def ws_consume_portion(hass, connection, msg) -> None:
                 shared_text(hass, result, n=msg.get("portion")),
             )
         return
-    await runtime.async_changed()
-    event = result["event"]
-    snap = event.get("item") or {}
-    hass.bus.async_fire(
-        EVENT_PORTION_CONSUMED,
-        {
-            "item_id": msg["item_id"],
-            "code": snap.get("code"),
-            "name": snap.get("name"),
-            "portion": result["portion"],
-            "remaining": result["remaining"],
-            "completed": result["completed"],
-        },
-    )
-    if result["completed"]:
-        hass.bus.async_fire(
-            EVENT_ITEM_COMPLETED,
-            {
-                "action": event["action"],
-                "by": event["by"],
-                "code": snap.get("code"),
-                "name": snap.get("name"),
-            },
-        )
     connection.send_result(msg["id"], result)
 
 
@@ -418,14 +405,16 @@ async def ws_set_portions(hass, connection, msg) -> None:
     runtime = _runtime_or_error(hass, connection, msg)
     if runtime is None:
         return
-    result = runtime.store.set_portions(msg["item_id"], msg["total"])
+    by, by_name = _user_attrs(connection)
+    result = await runtime.async_set_portions(
+        msg["item_id"], msg["total"], by=by, by_name=by_name
+    )
     if result is None:
         connection.send_error(
             msg["id"], "not_found",
             shared_text(hass, "item_not_found", id=msg["item_id"]),
         )
         return
-    await runtime.async_changed()
     connection.send_result(msg["id"], result)
 
 
@@ -589,7 +578,7 @@ async def ws_estimate(hass, connection, msg) -> None:
 @websocket_api.websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/add_template",
-        vol.Required("template"): dict,
+        vol.Required("template"): TEMPLATE_SCHEMA,
     }
 )
 @websocket_api.async_response
@@ -683,7 +672,9 @@ async def ws_print_sticker(hass, connection, msg) -> None:
     {
         vol.Required("type"): f"{DOMAIN}/render_label",
         vol.Optional("item_id"): str,
-        vol.Optional("item"): dict,
+        # ITEM_SCHEMA also strips underscore keys, so the ad-hoc preview can
+        # never reach dev hooks like the _brand asset renderer.
+        vol.Optional("item"): ITEM_SCHEMA,
         vol.Optional("portion"): int,
         vol.Optional("printer"): str,
     }

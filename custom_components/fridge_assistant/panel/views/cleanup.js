@@ -17,7 +17,7 @@ export function openCleanModal(panel) {
     </label>`;
   };
   const h = panel._openModal(`
-    <div class="modal-head"><div class="m-title"><h3>${panel.t("cleanUpTitle")}</h3></div><button class="icon-btn" id="c-close"><ha-icon icon="mdi:close"></ha-icon></button></div>
+    <div class="modal-head"><div class="m-title"><h3>${panel.t("cleanUpTitle")}</h3></div><button class="icon-btn" id="c-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button></div>
     ${expired.length ? `<div class="clean-sec">${panel.t("expiredSection")}</div>${expired.map((i) => row(i, true)).join("")}` : ""}
     ${soon.length ? `<div class="clean-sec">${panel.t("soonSection")}</div>${soon.map((i) => row(i, false)).join("")}` : ""}
     ${!expired.length && !soon.length ? `<div class="empty small"><div class="empty-emoji">✨</div><p>${panel.t("allGoodMessage")}</p></div>` : ""}
@@ -36,8 +36,19 @@ export function openCleanModal(panel) {
     const ids = [...h.modal.querySelectorAll("input[data-id]:checked")].map((c) => c.dataset.id);
     if (!ids.length) return;
     rm.disabled = true;
-    const res = await panel._call("remove_expired", { ids });
-    h.close();
-    panel._toast(panel.t("cleanedUpToast", res.count));
+    try {
+      const res = await panel._call("remove_expired", { ids });
+      h.close();
+      // Bulk removal is destructive: point at History, where every removed
+      // item can be restored individually.
+      panel._toast(panel.t("cleanedUpToast", res.count), {
+        actionLabel: panel.t("historyBtnLabel"),
+        onAction: () => panel._openHistory(),
+      });
+    } catch (e) {
+      rm.disabled = false;
+      updateBtn();
+      panel._toast(panel.t("actionFailed", e.message || e), { type: "bad" });
+    }
   });
 }

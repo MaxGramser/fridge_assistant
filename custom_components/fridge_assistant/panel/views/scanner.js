@@ -100,7 +100,7 @@ export async function openScanner(panel) {
     <div class="modal-head">
       <div class="m-title"><div class="m-strong">${panel.t("scanTitle")}</div>
         <div class="m-sub">${panel.t("scanSub")}</div></div>
-      <button class="icon-btn" id="sc-close"><ha-icon icon="mdi:close"></ha-icon></button>
+      <button class="icon-btn" id="sc-close" aria-label="${panel.t("closeBtn")}"><ha-icon icon="mdi:close"></ha-icon></button>
     </div>
     <div class="seg sc-mode" id="sc-mode">
       <button type="button" data-mode="find" class="on">${panel.t("searchModeBtn")}</button>
@@ -309,5 +309,7 @@ export async function onRetailBarcode(panel, code) {
     notes: known ? "" : panel.t("retailBarcodeNote", code),
     barcode: code,
   });
-  panel._toast(known ? panel.t("recognizedBefore") : panel.t("productFoundToast", src.name));
+  // src.name comes from OpenFoodFacts — remote data must not reach the
+  // toast's innerHTML unescaped.
+  panel._toast(known ? panel.t("recognizedBefore") : panel.t("productFoundToast", esc(src.name)));
 }
