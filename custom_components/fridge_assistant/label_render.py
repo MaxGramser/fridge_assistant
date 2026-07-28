@@ -1,12 +1,16 @@
 """Render a beautiful food label, natively sized for the target printer.
 
 The design reference is the DYMO 99014 label (54 x 101 mm, portrait, 300 dpi
-= 642 x 1192 px) — on that canvas the output is pixel-identical to the
-original fixed-size renderer. Pass ``ctx["canvas"] = {"w", "h", "dpi"}`` (the
-printer's ``native_px`` from the Label Printer add-on's ``GET /printers``) to
-render for any other label: the layout scales with the smaller of the
-width/height ratios so nothing ever overflows, while text lines and the
-contents section use whatever extra room the label offers.
+= 642 x 1192 px). Pass ``ctx["canvas"] = {"w", "h", "dpi"}`` (the printer's
+``native_px`` from the Label Printer add-on's ``GET /printers``) to render
+for any other label: the layout scales with the smaller of the width/height
+ratios so nothing ever overflows, while text lines and the contents section
+use whatever extra room the label offers.
+
+When the canvas carries ``printable`` (the add-on's per-label reachable
+rect), the art is rendered at that size and pasted onto the full white
+sticker canvas — the print head cannot reach the strips outside it, so art
+there would silently vanish on paper.
 
 This module is pure Pillow with no Home Assistant imports so it can be
 exercised and previewed in isolation.
@@ -242,13 +246,26 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
         today = _parse(today) or date.today()
 
     canvas = ctx.get("canvas") or {}
-    W = int(canvas.get("w") or LABEL_W)
-    H = int(canvas.get("h") or LABEL_H)
+    full_w = int(canvas.get("w") or LABEL_W)
+    full_h = int(canvas.get("h") or LABEL_H)
+    # The head cannot reach the whole sticker (DYMO: ~5.4 mm dead zone at the
+    # leading edge, ~1-1.5 mm sides). The add-on reports the reachable rect
+    # per label; the art renders at that size and is pasted onto the full
+    # white canvas below. Without printer info: the classic 99014 canvas with
+    # DYMO's own ImageableArea margins baked in at 300 dpi.
+    pr = canvas.get("printable")
+    if not canvas:
+        pr = {"x": 18, "y": 64, "w": full_w - 30, "h": full_h - 82}
+    if pr:
+        W, H = int(pr["w"]), int(pr["h"])
+        art_off = (int(pr["x"]), int(pr["y"]))
+    else:
+        W, H = full_w, full_h
+        art_off = (0, 0)
     # Everything fixed (type, margins, bars) follows the smaller of the two
     # ratios so no section can overflow a stubbier label; the full width is
     # always used, so wider labels get longer text lines instead of a
-    # stretched design. On the reference canvas sc == 1.0 and the output is
-    # pixel-identical to the original fixed-size renderer.
+    # stretched design.
     sc = min(W / LABEL_W, H / LABEL_H)
 
     def S(v: float) -> int:
@@ -264,26 +281,31 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     inner_w = W - 2 * MX
     cx = W // 2
 
-    # Outer frame
-    d.rounded_rectangle([S(12), S(12), W - S(13), H - S(13)],
-                        radius=S(30), outline=BLACK, width=max(2, S(3)))
+    # No drawn frame: the head can't reach the sticker's outer strips anyway,
+    # so every label ships with a natural white margin — a border drawn next
+    # to it reads as an ugly double frame. The printable area IS the design:
+    # full-width blocks run edge to edge and the natural margin does the
+    # framing.
 
-    y = S(40)
+    y = 0
 
-    # 1) Location banner (inverted bar) --------------------------------------
-    bar_h = S(92)
-    d.rounded_rectangle([MX, y, W - MX, y + bar_h], radius=S(20), fill=BLACK)
+    # 1) Location banner — flush against the very top of the printable area:
+    # square shoulders up, soft corners below.
+    bar_h = S(96)
+    d.rounded_rectangle([0, y, W - 1, y + bar_h], radius=S(20), fill=BLACK,
+                        corners=(False, False, True, True))
     # Compact banner text: first word of the localized label, so
     # "Buiten koelkast" -> "BUITEN" and "Fridge" -> "FRIDGE".
     loc_compact = (location_label.split()[0] if location_label else "").upper()
-    # Kind chip on the right — computed first so the location text can dodge it.
-    chip_left = W - MX - S(22)
+    # Kind chip on the right — computed first so the location text can dodge
+    # it. Text/chip insets equal MX, so everything below lines up with them.
+    chip_left = W - MX
     if kind_label:
         kf = sans_bold(S(26))
         kw = d.textlength(kind_label, font=kf)
         chip_pad = S(16)
         chip_w = kw + chip_pad * 2
-        chip_x = W - MX - S(22) - chip_w
+        chip_x = W - MX - chip_w
         d.rounded_rectangle([chip_x, y + S(24), chip_x + chip_w, y + bar_h - S(24)],
                             radius=S(13), outline=WHITE, width=max(1, S(2)))
         _, kh, _, kt = _text_size(d, kind_label, kf)
@@ -291,11 +313,11 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
                font=kf, fill=WHITE)
         chip_left = chip_x
     # Location text, auto-fit into the space left of the chip.
-    loc_avail = chip_left - (MX + S(28)) - S(20)
+    loc_avail = chip_left - MX - S(20)
     loc_font, _ = _fit_font(d, loc_compact or " ", cond_bold, loc_avail,
                             start=S(52), min_size=S(30))
     _, lh, _, lt = _text_size(d, loc_compact or " ", loc_font)
-    d.text((MX + S(28), y + (bar_h - lh) / 2 - lt), loc_compact,
+    d.text((MX, y + (bar_h - lh) / 2 - lt), loc_compact,
            font=loc_font, fill=WHITE)
     y += bar_h + S(26)
 
@@ -327,7 +349,7 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
         code_heading = s["portion"].format(n=portion, total=portions_total)
     else:
         code_heading = s["code"]
-    d.line([MX, y, W - MX, y], fill=BLACK, width=max(1, S(2)))
+    d.line([0, y, W - 1, y], fill=BLACK, width=max(1, S(2)))
     y += S(22)
     _draw_tracked(d, (0, y), code_heading, sans_bold(S(26)), tracking=S(10),
                   anchor_center=cx)
@@ -341,7 +363,7 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     _draw_barcode(d, code, cx, y, height=bar_height,
                   narrow=max(2, round(3 * sc)), ratio=3)
     y += bar_height + S(24)
-    d.line([MX, y, W - MX, y], fill=BLACK, width=max(1, S(2)))
+    d.line([0, y, W - 1, y], fill=BLACK, width=max(1, S(2)))
     y += S(22)
 
     # 4) Stored date ---------------------------------------------------------
@@ -369,14 +391,14 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     content_h = lh2 + gap_ld + ehh
     box_h = content_h + 2 * pad
     box_top = y
-    d.rounded_rectangle([MX, box_top, W - MX, box_top + box_h],
+    d.rounded_rectangle([0, box_top, W - 1, box_top + box_h],
                         radius=S(20), fill=BLACK)
     fg = WHITE
     ly = box_top + pad
-    _draw_tracked(d, (MX + S(28), ly - lt2), s["eat_before"], label_font,
+    _draw_tracked(d, (MX, ly - lt2), s["eat_before"], label_font,
                   fill=fg, tracking=S(6))
     dy = ly + lh2 + gap_ld
-    d.text((MX + S(28), dy - et), exp_str, font=exp_font, fill=fg)
+    d.text((MX, dy - et), exp_str, font=exp_font, fill=fg)
     y = box_top + box_h + S(24)
 
     # 6) Contents (only as much as fits above the footer) --------------------
@@ -401,7 +423,7 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
     # to read at a glance. Falls back to the brand line when there's no amount.
     if quantity:
         line_y = H - S(126)
-        d.line([MX, line_y, W - MX, line_y], fill=BLACK, width=max(1, S(2)))
+        d.line([0, line_y, W - 1, line_y], fill=BLACK, width=max(1, S(2)))
         _draw_tracked(d, (MX, line_y + S(16)), s["servings"], sans_bold(S(26)),
                       tracking=S(6))
         qfont, _ = _fit_font(d, quantity, sans_bold, inner_w, start=S(54),
@@ -410,11 +432,15 @@ def render_label(item: dict[str, Any], ctx: dict[str, Any] | None = None) -> Ima
         d.text((MX, line_y + S(54) - qt), quantity, font=qfont, fill=BLACK)
     else:
         foot_y = H - S(70)
-        d.line([MX, foot_y - S(16), W - MX, foot_y - S(16)], fill=BLACK,
+        d.line([0, foot_y - S(16), W - 1, foot_y - S(16)], fill=BLACK,
                width=max(1, S(2)))
         _draw_tracked(d, (0, foot_y), s["brand"], sans_bold(S(24)), tracking=S(4),
                       anchor_center=cx)
 
+    if (W, H) != (full_w, full_h):
+        full = Image.new("L", (full_w, full_h), WHITE)
+        full.paste(img, art_off)
+        img = full
     return img
 
 

@@ -99,14 +99,29 @@ def resolve_printer(
 
 
 def canvas_for(entry: dict[str, Any] | None) -> dict[str, Any] | None:
-    """The render canvas (px + dpi) for a printer's loaded label."""
+    """The render canvas (px + dpi) for a printer's loaded label.
+
+    Since add-on 0.6.0 every media entry also reports ``printable.rect_px``:
+    the part of the sticker the head can physically reach (DYMO parks the
+    label with its leading edge past the head, so the first ~5 mm can never
+    receive print). The art is rendered at that rect and pasted onto the
+    full white canvas, so nothing of the design lands in a dead zone.
+    """
     if not entry:
         return None
-    px = entry.get("native_px") or (entry.get("loaded") or {}).get("native_px")
+    loaded = entry.get("loaded") or {}
+    px = entry.get("native_px") or loaded.get("native_px")
     if not px or len(px) != 2 or not all(px):
         return None
-    return {"w": int(px[0]), "h": int(px[1]),
-            "dpi": int(entry.get("dpi") or label_render.DPI)}
+    canvas = {"w": int(px[0]), "h": int(px[1]),
+              "dpi": int(entry.get("dpi") or label_render.DPI)}
+    rect = ((loaded.get("printable") or entry.get("printable") or {})
+            .get("rect_px") or {})
+    if all(k in rect for k in ("x", "y", "w", "h")) \
+            and 0 < int(rect["w"]) <= canvas["w"] \
+            and 0 < int(rect["h"]) <= canvas["h"]:
+        canvas["printable"] = {k: int(rect[k]) for k in ("x", "y", "w", "h")}
+    return canvas
 
 
 async def async_canvas_for_printer(
